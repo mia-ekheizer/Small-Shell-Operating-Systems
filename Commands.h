@@ -153,7 +153,7 @@ class SmallShell {
   void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
   string getPromptName();
-  string setPromptName(string name);
+  string setPromptName(const string& name);
 };
 
 #endif //SMASH_COMMAND_H_

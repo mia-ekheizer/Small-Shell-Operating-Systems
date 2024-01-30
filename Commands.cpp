@@ -7,6 +7,8 @@
 #include <iomanip>
 #include "Commands.h"
 
+#define WHITESPACE " \t\n"
+
 using namespace std;
 
 #if 0
@@ -99,7 +101,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     return new ShowPidCommand(cmd_line);
   }
   else if (firstWord.compare("chprompt") == 0) {
-    return; 
+    return; //TODO:
   }
   else {
     return new ExternalCommand(cmd_line);
