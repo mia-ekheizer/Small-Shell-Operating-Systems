@@ -79,6 +79,16 @@ class QuitCommand : public BuiltInCommand {
   void execute() override;
 };
 
+class ChangePromptCommand : public BuiltInCommand {
+  private:
+    string name;
+  public:
+  ChangePromptCommand(const char* cmd_line);
+  virtual ~ChangePromptCommand() {}
+  void execute() override;
+  void setPromptName(const string& name);
+};
+
 
 
 
@@ -153,7 +163,6 @@ class SmallShell {
   void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
   string getPromptName();
-  string setPromptName(const string& name);
 };
 
 #endif //SMASH_COMMAND_H_

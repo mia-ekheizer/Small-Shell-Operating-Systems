@@ -7,7 +7,7 @@
 #include <iomanip>
 #include "Commands.h"
 
-#define WHITESPACE " \t\n"
+const std::string WHITESPACE " \t\n\r\f\v";
 
 using namespace std;
 
@@ -91,7 +91,7 @@ SmallShell::~SmallShell() {
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
-  string cmd_s = _trim(string(cmd_line));
+  string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
   if (firstWord.compare("pwd") == 0) {
@@ -101,7 +101,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     return new ShowPidCommand(cmd_line);
   }
   else if (firstWord.compare("chprompt") == 0) {
-    return; //TODO:
+    return new ChangePromptCommand(cmd_line);
   }
   else {
     return new ExternalCommand(cmd_line);
@@ -121,9 +121,12 @@ string SmallShell::getPromptName() {
   return prompt_name;
 }
 
-string SmallShell::setPromptName(const string& name = "smash") {
-  if (name == NULL || name == "") {
+void ChangePromptCommand::setPromptName(const string& name = "smash") {
+  if (name == "") {
     prompt_name = "smash";
   }
   prompt_name = _ltrim(name);
 }
+
+ChangePromptCommand::ChangePromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
+{}
