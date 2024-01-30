@@ -115,19 +115,13 @@ void SmallShell::executeCommand(const char *cmd_line) {
   // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
 
-string getPromptName() {
-  return this.prompt_name;
+string SmallShell::getPromptName() {
+  return prompt_name;
 }
 
-string setPromptName(const string& name = "smash") {
+string SmallShell::setPromptName(const string& name = "smash") {
   if (name == NULL || name == "") {
-    this.prompt_name = "smash";
+    prompt_name = "smash";
   }
-  size_t pos = str.find(' ');
-  if (pos != string::npos) 
-      return str.substr(0, pos);
-  else 
-      return str;
-    
-  this.prompt_name = name;
+  prompt_name = _ltrim(name);
 }
