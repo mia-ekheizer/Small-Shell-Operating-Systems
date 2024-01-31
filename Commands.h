@@ -23,6 +23,7 @@ class BuiltInCommand : public Command {
  public:
   BuiltInCommand(const char* cmd_line);
   virtual ~BuiltInCommand() {}
+  virtual void execute() = 0;
 };
 
 class ExternalCommand : public Command {
@@ -79,12 +80,12 @@ class QuitCommand : public BuiltInCommand {
   void execute() override;
 };
 
-class ChangePromptCommand : public BuiltInCommand {
+class ChpromptCommand : public BuiltInCommand {
   private:
     string name;
   public:
-  ChangePromptCommand(const char* cmd_line);
-  virtual ~ChangePromptCommand() {}
+  ChpromptCommand(const char* cmd_line);
+  virtual ~ChpromptCommand() {}
   void execute() override;
   void setPromptName(const string& name);
 };
@@ -136,6 +137,7 @@ class ForegroundCommand : public BuiltInCommand {
   void execute() override;
 };
 
+//Special Command
 class ChmodCommand : public BuiltInCommand {
  public:
   ChmodCommand(const char* cmd_line);
@@ -147,7 +149,7 @@ class ChmodCommand : public BuiltInCommand {
 class SmallShell {
  private:
   // TODO: Add your data members
-  string prompt_name = "smash";
+  std::string prompt_name = "smash> ";
   SmallShell();
  public:
   Command *CreateCommand(const char* cmd_line);
@@ -162,7 +164,8 @@ class SmallShell {
   ~SmallShell();
   void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
-  string getPromptName();
+  std::string getPromptName();
+  std::string setPromptName(const std::string& name);
 };
 
 #endif //SMASH_COMMAND_H_

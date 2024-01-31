@@ -101,7 +101,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     return new ShowPidCommand(cmd_line);
   }
   else if (firstWord.compare("chprompt") == 0) {
-    return new ChangePromptCommand(cmd_line);
+    return new ChpromptCommand(cmd_line);
   }
   else {
     return new ExternalCommand(cmd_line);
@@ -115,18 +115,23 @@ void SmallShell::executeCommand(const char *cmd_line) {
   // Command* cmd = CreateCommand(cmd_line);
   // cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
+
 }
 
 string SmallShell::getPromptName() {
   return prompt_name;
 }
 
-void ChangePromptCommand::setPromptName(const string& name = "smash") {
-  if (name == "") {
-    prompt_name = "smash";
+void ChpromptCommand::setPromptName(const string& name) {
+  if (name == WHITESPACE) {
+    prompt_name = "smash> ";
   }
   prompt_name = _ltrim(name);
 }
-
-ChangePromptCommand::ChangePromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
+//ChpromptCommand constructor
+ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
 {}
+
+void ChpromptCommand::execute() {
+    this
+}
