@@ -7,6 +7,7 @@
 #define COMMAND_MAX_ARGS (20)
 
 using namespace std;
+class JobsList;
 
 class Command {
 // TODO: Add your data members
@@ -26,6 +27,66 @@ class BuiltInCommand : public Command {
   virtual void execute() = 0;
 };
 
+class ChpromptCommand : public BuiltInCommand {
+  private:
+  public:
+  ChpromptCommand(const char* cmd_line);
+  virtual ~ChpromptCommand() {}
+  void execute() override;
+};
+
+class ShowPidCommand : public BuiltInCommand {
+ public:
+  ShowPidCommand(const char* cmd_line);
+  virtual ~ShowPidCommand() {}
+  void execute() override;
+};
+
+class GetCurrDirCommand : public BuiltInCommand {
+ public:
+  GetCurrDirCommand(const char* cmd_line);
+  virtual ~GetCurrDirCommand() {}
+  void execute() override;
+};
+
+class ChangeDirCommand : public BuiltInCommand {
+// TODO: Add your data members public:
+  ChangeDirCommand(const char* cmd_line, char** plastPwd);
+  virtual ~ChangeDirCommand() {}
+  void execute() override;
+};
+
+class JobsCommand : public BuiltInCommand {
+ // TODO: Add your data members
+ public:
+  JobsCommand(const char* cmd_line, JobsList* jobs);
+  virtual ~JobsCommand() {}
+  void execute() override;
+};
+
+class ForegroundCommand : public BuiltInCommand {
+ // TODO: Add your data members
+ public:
+  ForegroundCommand(const char* cmd_line, JobsList* jobs);
+  virtual ~ForegroundCommand() {}
+  void execute() override;
+};
+
+class QuitCommand : public BuiltInCommand {
+// TODO: Add your data members public:
+  QuitCommand(const char* cmd_line, JobsList* jobs);
+  virtual ~QuitCommand() {}
+  void execute() override;
+};
+
+class KillCommand : public BuiltInCommand {
+ // TODO: Add your data members
+ public:
+  KillCommand(const char* cmd_line, JobsList* jobs);
+  virtual ~KillCommand() {}
+  void execute() override;
+};
+
 class ExternalCommand : public Command {
  public:
   ExternalCommand(const char* cmd_line);
@@ -33,13 +94,7 @@ class ExternalCommand : public Command {
   void execute() override;
 };
 
-class PipeCommand : public Command {
-  // TODO: Add your data members
- public:
-  PipeCommand(const char* cmd_line);
-  virtual ~PipeCommand() {}
-  void execute() override;
-};
+//Special Commands
 
 class RedirectionCommand : public Command {
  // TODO: Add your data members
@@ -51,47 +106,27 @@ class RedirectionCommand : public Command {
   //void cleanup() override;
 };
 
-class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-  ChangeDirCommand(const char* cmd_line, char** plastPwd);
-  virtual ~ChangeDirCommand() {}
-  void execute() override;
-};
-
-class GetCurrDirCommand : public BuiltInCommand {
+class PipeCommand : public Command {
+  // TODO: Add your data members
  public:
-  GetCurrDirCommand(const char* cmd_line);
-  virtual ~GetCurrDirCommand() {}
+  PipeCommand(const char* cmd_line);
+  virtual ~PipeCommand() {}
   void execute() override;
 };
 
-class ShowPidCommand : public BuiltInCommand {
+class ChmodCommand : public BuiltInCommand {
  public:
-  ShowPidCommand(const char* cmd_line);
-  virtual ~ShowPidCommand() {}
+  ChmodCommand(const char* cmd_line);
+  virtual ~ChmodCommand() {}
   void execute() override;
 };
 
-class JobsList;
-class QuitCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-  QuitCommand(const char* cmd_line, JobsList* jobs);
-  virtual ~QuitCommand() {}
+class TimeoutCommand : public Command {
+ public:
+  TimeoutCommand(const char* cmd_line);
+  virtual ~TimeoutCommand() {}
   void execute() override;
 };
-
-class ChpromptCommand : public BuiltInCommand {
-  private:
-    string name;
-  public:
-  ChpromptCommand(const char* cmd_line);
-  virtual ~ChpromptCommand() {}
-  void execute() override;
-  void setPromptName(const string& name);
-};
-
-
-
 
 class JobsList {
  public:
@@ -113,39 +148,6 @@ class JobsList {
   // TODO: Add extra methods or modify exisitng ones as needed
 };
 
-class JobsCommand : public BuiltInCommand {
- // TODO: Add your data members
- public:
-  JobsCommand(const char* cmd_line, JobsList* jobs);
-  virtual ~JobsCommand() {}
-  void execute() override;
-};
-
-class KillCommand : public BuiltInCommand {
- // TODO: Add your data members
- public:
-  KillCommand(const char* cmd_line, JobsList* jobs);
-  virtual ~KillCommand() {}
-  void execute() override;
-};
-
-class ForegroundCommand : public BuiltInCommand {
- // TODO: Add your data members
- public:
-  ForegroundCommand(const char* cmd_line, JobsList* jobs);
-  virtual ~ForegroundCommand() {}
-  void execute() override;
-};
-
-//Special Command
-class ChmodCommand : public BuiltInCommand {
- public:
-  ChmodCommand(const char* cmd_line);
-  virtual ~ChmodCommand() {}
-  void execute() override;
-};
-
-
 class SmallShell {
  private:
   // TODO: Add your data members
@@ -165,7 +167,7 @@ class SmallShell {
   void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
   std::string getPromptName();
-  std::string setPromptName(const std::string& name);
+  void setPromptName(const std::string& name);
 };
 
 #endif //SMASH_COMMAND_H_

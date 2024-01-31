@@ -77,14 +77,27 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-// TODO: Add your implementation for classes in Commands.h 
+// TODO: Add your implementation for classes in Commands.h
 
-SmallShell::SmallShell() {
-  // TODO: add your implementation
+//ChpromptCommand methods
+ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
+{}
+
+void ChpromptCommand::execute() {
+  char* args[COMMAND_MAX_ARGS];
+  int num_of_args = _parseCommandLine(cmd_line, args);
+  SmallShell& smash = SmallShell::getInstance();
+  if (num_of_args == 0) {
+    smash.setPromptName(WHITESPACE);
+  }
+  else {
+    smash.setPromptName(args[0]);
+  }
 }
 
-SmallShell::~SmallShell() {
-// TODO: add your implementation
+//SmallShell methods
+SmallShell::SmallShell() { // implement as singleton
+  // TODO: add your implementation
 }
 
 /**
@@ -93,15 +106,32 @@ SmallShell::~SmallShell() {
 Command * SmallShell::CreateCommand(const char* cmd_line) {
   string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
-
-  if (firstWord.compare("pwd") == 0) {
-    return new GetCurrDirCommand(cmd_line);
+  if(_isBackgroundComamnd(cmd_line)) {
+    _removeBackgroundSign(const_cast<char*>(cmd_line));
+  }
+  if (firstWord.compare("chprompt") == 0) {
+    return new ChpromptCommand(cmd_line);
   }
   else if (firstWord.compare("showpid") == 0) {
     return new ShowPidCommand(cmd_line);
   }
-  else if (firstWord.compare("chprompt") == 0) {
-    return new ChpromptCommand(cmd_line);
+  else if (firstWord.compare("pwd") == 0) {
+    return new GetCurrDirCommand(cmd_line);
+  }
+  else if (firstWord.compare("cd") == 0) {
+    return new ChangeDirCommand(cmd_line);
+  }
+  else if (firstWord.compare("jobs") == 0) {
+    return new JobsCommand(cmd_line);
+  }
+  else if (firstWord.compare("fg") == 0) {
+    return new ForegroundCommand(cmd_line);
+  }
+  else if (firstWord.compare("quit") == 0) {
+    return new QuitCommand(cmd_line);
+  }
+  else if (firstWord.compare("kill") == 0) {
+    return new KillCommand(cmd_line);
   }
   else {
     return new ExternalCommand(cmd_line);
@@ -109,29 +139,26 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   return nullptr;
 }
 
+SmallShell::~SmallShell() {
+// TODO: add your implementation
+}
+
 void SmallShell::executeCommand(const char *cmd_line) {
   // TODO: Add your implementation here
-  // for example:
-  // Command* cmd = CreateCommand(cmd_line);
-  // cmd->execute();
+  Command* cmd = CreateCommand(cmd_line);
+  cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
 
 }
 
-string SmallShell::getPromptName() {
-  return prompt_name;
+std::string SmallShell::getPromptName() {
+    return prompt_name;
 }
 
-void ChpromptCommand::setPromptName(const string& name) {
+void SmallShell::setPromptName(const string& name) {
   if (name == WHITESPACE) {
     prompt_name = "smash> ";
   }
   prompt_name = _ltrim(name);
 }
-//ChpromptCommand constructor
-ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
-{}
 
-void ChpromptCommand::execute() {
-    this
-}
