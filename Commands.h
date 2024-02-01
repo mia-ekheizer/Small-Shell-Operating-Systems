@@ -11,6 +11,8 @@ using namespace std;
 class JobsList;
 
 class Command {
+ protected:
+  const char* cmd_line;
 // TODO: Add your data members
  public:
   Command(const char* cmd_line);
@@ -19,6 +21,7 @@ class Command {
   //virtual void prepare();
   //virtual void cleanup();
   // TODO: Add your extra methods if needed
+  const char* getCmdLine() const;
 };
 
 class BuiltInCommand : public Command {
@@ -130,16 +133,30 @@ class TimeoutCommand : public Command {
   void execute() override;
 };
 
-class JobsList {
+class JobsList {  
  public:
   class JobEntry {
+    private:
+      int jobId;
+      Command* cmd;
+      pid_t jobPid;
+    public:
    // TODO: Add your data members
+    JobEntry(int job_id, Command* cmd, pid_t job_pid);
+    ~JobEntry() {};
+    pid_t getJobPid();
+    void setJobId(int new_job_id);
+    int getJobId();
+    Command* getCommand();
   };
- // TODO: Add your data members
+ private:
+  // TODO: Add your data members
+  std::vector<JobEntry*> jobs_list;
+  int max_job_id;
  public:
   JobsList();
   ~JobsList();
-  void addJob(Command* cmd, bool isStopped = false);
+  void addJob(Command* cmd);
   void printJobsList();
   void killAllJobs();
   void removeFinishedJobs();
@@ -148,6 +165,8 @@ class JobsList {
   JobEntry * getLastJob(int* lastJobId);
   JobEntry *getLastStoppedJob(int *jobId);
   // TODO: Add extra methods or modify exisitng ones as needed
+  void removeFinishedJobs();
+  void updateMaxJobId();
 };
 
 class SmallShell {

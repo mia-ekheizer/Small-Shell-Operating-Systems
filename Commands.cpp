@@ -83,9 +83,18 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
+//Command methods
+Command::Command(const char* cmd_line) : cmd_line(cmd_line) {}
+
+const char* Command::getCmdLine() const {
+  return cmd_line;
+}
+
+//BuiltInCommand methods
+BuiltInCommand::BuiltInCommand(const char* cmd_line) : Command(cmd_line) {}
+
 //ChpromptCommand methods
-ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
-{}
+ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
 
 void ChpromptCommand::execute() {
   char* args[COMMAND_MAX_ARGS];
@@ -168,6 +177,74 @@ JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(
 
 void JobsCommand::execute() {
   
+}
+
+// JobEntry methods
+JobsList::JobEntry::JobEntry(int job_id, Command* cmd, pid_t job_pid) : job_id(jod_id), cmd(cmd), job_pid(job_pid) {}
+
+pid_t JobsList::JobEntry::getJobPid() {
+  return jobPid;
+}
+
+void JobsList::JobEntry::setJobId(int new_job_id) {
+  jobId = new_job_id;
+}
+
+int JobsList::JobEntry::getJobId() {
+  return jobId;
+}
+
+Command* JobsList::JobEntry::getCommand() {
+  return cmd;
+}
+
+// JobsList methods
+JobsList::JobsList() : jobs_list(new std::vector<JobEntry*>), max_job_id(0) {}
+
+JobsList::~JobsList() {
+  for (auto job_entry : jobs_list) {
+    delete job_entry;
+  }
+  delete jobs_list;
+}
+
+void JobsList::addJob(Command* cmd) {
+  removeFinishedJobs();
+  max_job_id++;
+  JobEntry* new_job = new JobEntry(max_job_id, cmd, getpid());
+  jobs_list.insert(new_job);
+  //TODO: Does the max_job_id change if the last job finished?
+}
+
+void JobsList::printJobsList() {
+  removeFinishedJobs();
+  for(auto job_entry : jobs_list) {
+    cout << "[" << job_entry->getJobId() << "] " << job_entry->getCommand()->getCmdLine() << endl; 
+  }
+}
+
+void JobsList::removeFinishedJobs() {
+  for (JobEntry it = jobs_list.begin(); it != jobs_list.end(); it++) {
+    JobEntry* tmp = *it;
+    pid_t pid_status = waitpid(tmp->jobPid, nullptr, WNOHANG);
+    if (pid_status == tmp->getJobPid() || pid_status == -1) {
+      delete tmp;
+      it = jobs_list.erase(it);
+    }
+    else { // pid_status == 0
+      it++;
+    }
+  }
+  updateMaxJobId();
+}
+
+void jobsList::updateMaxJobId() {
+  if(jobs_list.empty()) {
+    jobs_list.setJobId(0);
+  }
+  else {
+    jobs_list.setJobId(jobs_list.back()->getJobId());
+  }
 }
 
 //SmallShell methods
