@@ -54,6 +54,12 @@ int _parseCommandLine(const char* cmd_line, char** args) {
   FUNC_EXIT()
 }
 
+void _freeArgs(char** args, int size) {
+  for (int i = 0; i < size; i++) {
+    free(args[i]);
+  }
+}
+
 bool _isBackgroundComamnd(const char* cmd_line) {
   const string str(cmd_line);
   return str[str.find_last_not_of(WHITESPACE)] == '&';
@@ -77,8 +83,6 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-// TODO: Add your implementation for classes in Commands.h
-
 //ChpromptCommand methods
 ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
 {}
@@ -93,11 +97,109 @@ void ChpromptCommand::execute() {
   else {
     smash.setPromptName(args[0]);
   }
+  _freeArgs(args, num_of_args);
+}
+
+// ShowPidCommand methods
+ShowPidCommand::ShowPidCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
+{}
+
+void ShowPidCommand::execute() {
+  std::cout << "smash pid is " << getpid() << std::endl; //TODO: is endl or \n?
+}
+
+// GetCurrDirCommand methods
+GetCurrDirCommand::GetCurrDirCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
+{}
+
+void GetCurrDirCommand::execute() {
+  char arr[COMMAND_MAX_PATH_LENGHT];
+  if(getcwd(arr, COMMAND_MAX_PATH_LENGHT) != NULL) {
+    std::cout << arr << std::endl;
+  }
+  else {
+    perror("smash error: getcwd failed");
+  }
+}
+
+// ChangeDirCommand methods
+ChangeDirCommand::ChangeDirCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
+{}
+
+void ChangeDirCommand::execute() {
+  SmallShell& smash = SmallShell::getInstance();
+  char* args[COMMAND_MAX_ARGS];
+  int size_args = _parseCommandLine(cmd_line, args);
+  char* curr_dir = getcwd(args, size_args);
+  if(!curr_dir) {
+    perror("smash error: getcwd failed");
+  }
+  if (size_args > 2) {
+    std::cerr << "smash error: cd: too many arguments" << std::endl;
+  }
+  else if(size_args == 1) { 
+    // TODO: what if we only get cd? - piazza
+  }
+  else { // if size_args == 2
+    if (args[1] == "-") {
+      char* last_dir = smash.getLastDir();
+        if (chdir(last_dir) == -1) {
+          perror("smash error: chdir failed");
+        }
+        else {
+          smash.setLastDir(curr_dir);
+        }
+      }
+    else { // not "cd -"
+      if(chdir(args[1]) == -1) {
+        perror("smash error: chdir failed");
+      }
+      else {
+          smash.setLastDir(curr_dir);
+      }
+    }
+  } 
+  _freeArgs(args, size_args); 
+}
+
+// JobsCommand methods
+JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line)
+{}
+
+void JobsCommand::execute() {
+  
 }
 
 //SmallShell methods
 SmallShell::SmallShell() { // implement as singleton
   // TODO: add your implementation
+}
+
+std::string SmallShell::getPromptName() const {
+    return prompt_name;
+}
+
+void SmallShell::setPromptName(const string& name) {
+  if (name == WHITESPACE) {
+    prompt_name = "smash> ";
+  }
+  prompt_name = _ltrim(name);
+}
+
+pid_t SmallShell::getShellPid() const {
+  return this->shellPid;
+}
+
+void SmallShell::setShellPid(int pid) {
+  this->shellPid = getpid();
+}
+
+void SmallShell::setLastDir(const char* new_dir) {
+  last_dir = new_dir;
+}
+
+char* SmallShell::getLastDir() const {
+  return last_dir;
 }
 
 /**
@@ -145,21 +247,7 @@ SmallShell::~SmallShell() {
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
-  // TODO: Add your implementation here
-  Command* cmd = CreateCommand(cmd_line);
-  cmd->execute();
+    Command* cmd = CreateCommand(cmd_line);
+    cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
-
 }
-
-std::string SmallShell::getPromptName() {
-    return prompt_name;
-}
-
-void SmallShell::setPromptName(const string& name) {
-  if (name == WHITESPACE) {
-    prompt_name = "smash> ";
-  }
-  prompt_name = _ltrim(name);
-}
-

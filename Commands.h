@@ -5,6 +5,7 @@
 
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
+#define COMMAND_MAX_PATH_LENGHT (80)
 
 using namespace std;
 class JobsList;
@@ -51,7 +52,8 @@ class GetCurrDirCommand : public BuiltInCommand {
 
 class ChangeDirCommand : public BuiltInCommand {
 // TODO: Add your data members public:
-  ChangeDirCommand(const char* cmd_line, char** plastPwd);
+public:
+  ChangeDirCommand(const char* cmd_line);
   virtual ~ChangeDirCommand() {}
   void execute() override;
 };
@@ -151,6 +153,8 @@ class JobsList {
 class SmallShell {
  private:
   // TODO: Add your data members
+  pid_t shellPid;
+  char* last_dir;
   std::string prompt_name = "smash> ";
   SmallShell();
  public:
@@ -166,8 +170,13 @@ class SmallShell {
   ~SmallShell();
   void executeCommand(const char* cmd_line);
   // TODO: add extra methods as needed
-  std::string getPromptName();
-  void setPromptName(const std::string& name);
+  std::string getPromptName() const; // for chprompt usage
+  
+  void setPromptName(const std::string& name);  // for chprompt usage
+  pid_t getShellPid() const; //for showpid usage
+
+  void setLastDir(const char* new_dir); //for cd usage
+  char* getLastDir() const; //for cd usage
 };
 
 #endif //SMASH_COMMAND_H_
