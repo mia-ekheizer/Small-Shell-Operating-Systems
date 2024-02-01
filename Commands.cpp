@@ -106,6 +106,7 @@ SmallShell::SmallShell() { // implement as singleton
 Command * SmallShell::CreateCommand(const char* cmd_line) {
   string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+  // TODO: add Special and External Commands
   if(_isBackgroundComamnd(cmd_line)) {
     _removeBackgroundSign(const_cast<char*>(cmd_line));
   }
