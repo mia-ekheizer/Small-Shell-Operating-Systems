@@ -176,7 +176,7 @@ JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(
 {}
 
 void JobsCommand::execute() {
-  
+  getJobsList()->printJobsList();
 }
 
 // JobEntry methods
@@ -247,6 +247,10 @@ void jobsList::updateMaxJobId() {
   }
 }
 
+std::vector<JobEntry*>* getJobsList() const {
+  return *jobs_list;
+}
+
 //SmallShell methods
 SmallShell::SmallShell() { // implement as singleton
   // TODO: add your implementation
@@ -286,6 +290,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
   // TODO: add Special and External Commands
+ // TODO: add isBuiltInCommand
   if(_isBackgroundComamnd(cmd_line)) {
     _removeBackgroundSign(const_cast<char*>(cmd_line));
   }

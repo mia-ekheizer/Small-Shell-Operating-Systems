@@ -144,10 +144,10 @@ class JobsList {
    // TODO: Add your data members
     JobEntry(int job_id, Command* cmd, pid_t job_pid);
     ~JobEntry() {};
-    pid_t getJobPid();
+    pid_t getJobPid() const;
     void setJobId(int new_job_id);
-    int getJobId();
-    Command* getCommand();
+    int getJobId() const;
+    Command* getCommand() const;
   };
  private:
   // TODO: Add your data members
@@ -167,6 +167,7 @@ class JobsList {
   // TODO: Add extra methods or modify exisitng ones as needed
   void removeFinishedJobs();
   void updateMaxJobId();
+  std::vector<JobEntry*>* getJobsList() const;
 };
 
 class SmallShell {
