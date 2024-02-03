@@ -176,8 +176,13 @@ JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(
 {}
 
 void JobsCommand::execute() {
+  SmallShell &smash = SmallShell::getInstance();
+  smash->getJobsList()->printJobsList();
   getJobsList()->printJobsList();
 }
+
+// ForegroundCommand
+
 
 // JobEntry methods
 JobsList::JobEntry::JobEntry(int job_id, Command* cmd, pid_t job_pid) : job_id(jod_id), cmd(cmd), job_pid(job_pid) {}
@@ -281,6 +286,10 @@ void SmallShell::setLastDir(const char* new_dir) {
 
 char* SmallShell::getLastDir() const {
   return last_dir;
+}
+
+JobsList* SmallShell::getJobsList() const {
+  return jobs;
 }
 
 /**

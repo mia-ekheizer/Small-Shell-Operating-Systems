@@ -178,6 +178,7 @@ class SmallShell {
   std::string prompt_name = "smash> ";
   SmallShell();
  public:
+  JobsList* jobs;
   Command *CreateCommand(const char* cmd_line);
   SmallShell(SmallShell const&)      = delete; // disable copy ctor
   void operator=(SmallShell const&)  = delete; // disable = operator
@@ -197,6 +198,8 @@ class SmallShell {
 
   void setLastDir(const char* new_dir); //for cd usage
   char* getLastDir() const; //for cd usage
+
+  JobsList* getJobsList() const;
 };
 
 #endif //SMASH_COMMAND_H_
