@@ -157,7 +157,8 @@ class JobsList {
   JobsList();
   ~JobsList();
   void addJob(Command* cmd);
-  void printJobsList();
+  void printJobsListWithId();
+  void printJobWithPid(JobEntry& job_entry);
   void killAllJobs();
   void removeFinishedJobs();
   JobEntry * getJobById(int jobId);
@@ -168,6 +169,8 @@ class JobsList {
   void removeFinishedJobs();
   void updateMaxJobId();
   std::vector<JobEntry*>* getJobsList() const;
+  bool isEmpty() const;
+  bool jobExistsInList(int job_id);
 };
 
 class SmallShell {
@@ -176,9 +179,9 @@ class SmallShell {
   pid_t shellPid;
   char* last_dir;
   std::string prompt_name = "smash> ";
+  JobsList* jobs;
   SmallShell();
  public:
-  JobsList* jobs;
   Command *CreateCommand(const char* cmd_line);
   SmallShell(SmallShell const&)      = delete; // disable copy ctor
   void operator=(SmallShell const&)  = delete; // disable = operator

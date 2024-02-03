@@ -182,7 +182,33 @@ void JobsCommand::execute() {
 }
 
 // ForegroundCommand
+ForegroundCommand::ForegroundCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
 
+void ForegroundCommand::execute() {
+  SmallShell& smash = SmallShell::getInstance();
+  JobsList* jobs = smash.getJobsList();
+  char* args[COMMAND_MAX_ARGS];
+  int size_args = _parseCommandLine(cmd_line, args);
+  if (size_args > 2 || typeof(args[1]) != int) {
+    cerr << "smash error: fg: invalid arguments" << endl;
+  }
+  else if (size_args == 1) {
+    if (jobs->isEmpty()) {
+      cerr << "smash error: fg: jobs list is empty" << endl;
+    }
+    else {
+      //TODO: print the command line of the job with the maximal id and waitpid.
+    }
+  }
+  else { // size_args == 2
+    if (!jobs->jobExistsInList(args[1])) {
+      cerr << "smash error: fg: job-id" << args[1] << "does not exist" << endl;
+    }
+    else {
+      //TODO: print the command line of the job with its id and waitpid.
+    }
+  }
+}
 
 // JobEntry methods
 JobsList::JobEntry::JobEntry(int job_id, Command* cmd, pid_t job_pid) : job_id(jod_id), cmd(cmd), job_pid(job_pid) {}
@@ -221,11 +247,15 @@ void JobsList::addJob(Command* cmd) {
   //TODO: Does the max_job_id change if the last job finished?
 }
 
-void JobsList::printJobsList() {
+void JobsList::printJobsListWithId() {
   removeFinishedJobs();
   for(auto job_entry : jobs_list) {
     cout << "[" << job_entry->getJobId() << "] " << job_entry->getCommand()->getCmdLine() << endl; 
   }
+}
+
+void JobsList::printJobWithPid(JobsList::JobEntry& job_entry) {
+  cout << job_entry->getCommand()->getCmdLine() << job_entry->getJobPid();
 }
 
 void JobsList::removeFinishedJobs() {
@@ -243,7 +273,7 @@ void JobsList::removeFinishedJobs() {
   updateMaxJobId();
 }
 
-void jobsList::updateMaxJobId() {
+void JobsList::updateMaxJobId() {
   if(jobs_list.empty()) {
     jobs_list.setJobId(0);
   }
@@ -254,6 +284,24 @@ void jobsList::updateMaxJobId() {
 
 std::vector<JobEntry*>* getJobsList() const {
   return *jobs_list;
+}
+
+bool JobsList::isEmpty() const {
+  if (jobs_list.empty()) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+bool JobsList::jobExistsInList(int job_id) {
+  for (JobEntry it = jobs_list.begin(); it != jobs_list.end(); it++) {
+    if (job_id == it->jobId) {
+      return true;
+    }
+  }
+  return false;
 }
 
 //SmallShell methods
