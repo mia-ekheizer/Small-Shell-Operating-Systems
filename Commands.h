@@ -170,7 +170,9 @@ class JobsList {
   void updateMaxJobId();
   std::vector<JobEntry*>* getJobsList() const;
   bool isEmpty() const;
-  bool jobExistsInList(int job_id);
+  JobEntry* jobExistsInList(int job_id);
+  void removeJob(JobEntry* to_remove);
+  JobEntry* getLastJob();
 };
 
 class SmallShell {
@@ -197,12 +199,14 @@ class SmallShell {
   std::string getPromptName() const; // for chprompt usage
   
   void setPromptName(const std::string& name);  // for chprompt usage
-  pid_t getShellPid() const; //for showpid usage
+  pid_t getShellPid() const; // for showpid usage
 
-  void setLastDir(const char* new_dir); //for cd usage
-  char* getLastDir() const; //for cd usage
+  void setLastDir(const char* new_dir); // for cd usage
+  char* getLastDir() const; // for cd usage
 
-  JobsList* getJobsList() const;
+  JobsList* getJobsList() const; // for jobs and fg usage
+
+  bool _isBuiltInCommand(const string cmd_name);
 };
 
 #endif //SMASH_COMMAND_H_

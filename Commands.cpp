@@ -197,17 +197,39 @@ void ForegroundCommand::execute() {
       cerr << "smash error: fg: jobs list is empty" << endl;
     }
     else {
-      //TODO: print the command line of the job with the maximal id and waitpid.
+      JobsList::JobEntry* to_foreground = jobs->getLastJob();
+      cout << to_foreground->getCommand()->getCmdLine() << " " << to_foreground->getJobPid() << endl;
+      smash.moveToForeground(to_foreground->getJobPid());       
+      jobs->removeJob(to_foreground);
     }
   }
   else { // size_args == 2
-    if (!jobs->jobExistsInList(args[1])) {
+    JobsList::JobEntry* to_foreground = jobs->jobExistsInList(args[1]);
+    if (!to_foreground) {
       cerr << "smash error: fg: job-id" << args[1] << "does not exist" << endl;
     }
     else {
-      //TODO: print the command line of the job with its id and waitpid.
+      cout << to_foreground->getCommand()->getCmdLine() << " " << to_string(to_foreground->getJobPid()) << endl;
+      smash.moveToForeground(to_foreground->getJobPid()); 
+      jobs->removeJob(to_foreground);
     }
   }
+  _freeArgs(args, size_args);
+}
+
+// ExternalCommand methods
+ExternalCommand::ExternalCommand(const char* cmd_line) : Command(cmd_line) {}
+
+void ExternalCommand::execute() {
+  /*TODO: call _isBackgroundComamnd() and check the &:
+  If there is & (run in background), run the following steps:
+  Add the command to the jobs list.
+  Check if it is a simple or complex external command (need to build a function that does that, using find_first_of()).
+  If it is simple: pass relevant arguments to execv.
+  If it is complex: execute as a new instance of bash (need to figure out what it means).
+  No need to wait for the command copletion.
+  If there is no &, run in foreground.
+  */
 }
 
 // JobEntry methods
@@ -295,13 +317,26 @@ bool JobsList::isEmpty() const {
   }
 }
 
-bool JobsList::jobExistsInList(int job_id) {
-  for (JobEntry it = jobs_list.begin(); it != jobs_list.end(); it++) {
-    if (job_id == it->jobId) {
-      return true;
+JobsList::JobEntry* JobsList::jobExistsInList(int job_id) {
+  for (JobEntry* it = jobs_list.begin(); it != jobs_list.end(); it++) {
+    if (job_id == it->jobId && waitpid(it->getJobPid(), nullptr, WNOHANG) != -1) {
+      return it;
     }
   }
-  return false;
+  return nullptr;
+}
+
+void JobsList::removeJob(JobsList::JobEntry* to_remove) {
+  for (JobEntry it = jobs_list.begin(); it != jobs_list.end(); it++) {
+    if (to_remove->getJobId() == it->getJobId()) {
+      delete to_remove->getCommand();
+      jobs_list.erase(it);
+    }
+  }
+}
+
+JobsList::JobEntry* JobsList::getLastJob() {
+  return jobs_list.back();
 }
 
 //SmallShell methods
@@ -340,15 +375,26 @@ JobsList* SmallShell::getJobsList() const {
   return jobs;
 }
 
+bool SmallShell::_isBuiltInCommand(string cmd_name) {
+  string copy_cmd = cmd_name;
+  _removeBackgroundSign(copy_cmd);
+  if (copy_cmd.compare("chprompt") == 0 || copy_cmd.compare("showpid") == 0 || copy_cmd.compare("pwd") == 0 ||
+  copy_cmd.compare("cd") == 0 || copy_cmd.compare("jobs") == 0 || copy_cmd.compare("fg") == 0 ||
+  copy_cmd.compare("quit") == 0 || copy_cmd.compare("kill") == 0) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
   string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
-  // TODO: add Special and External Commands
- // TODO: add isBuiltInCommand
-  if(_isBackgroundComamnd(cmd_line)) {
+  if (_isBuiltInCommand(firstWord)) {
     _removeBackgroundSign(const_cast<char*>(cmd_line));
   }
   if (firstWord.compare("chprompt") == 0) {
@@ -376,6 +422,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     return new KillCommand(cmd_line);
   }
   else {
+    // TODO: add Special and External Commands
     return new ExternalCommand(cmd_line);
   }
   return nullptr;
