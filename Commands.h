@@ -79,14 +79,19 @@ class ForegroundCommand : public BuiltInCommand {
 
 class QuitCommand : public BuiltInCommand {
 // TODO: Add your data members public:
+private:
+  JobsList* jobs;
+public:
   QuitCommand(const char* cmd_line, JobsList* jobs);
   virtual ~QuitCommand() {}
   void execute() override;
 };
 
 class KillCommand : public BuiltInCommand {
- // TODO: Add your data members
- public:
+private:
+  JobsList* jobs;
+
+public:
   KillCommand(const char* cmd_line, JobsList* jobs);
   virtual ~KillCommand() {}
   void execute() override;
@@ -147,6 +152,8 @@ class JobsList {
     pid_t getJobPid() const;
     void setJobId(int new_job_id);
     int getJobId() const;
+    void printWithJobIdAndPid() const; // TODO
+    void printWithJobPid() const; // TODO:
     Command* getCommand() const;
   };
  private:
@@ -159,7 +166,6 @@ class JobsList {
   void addJob(Command* cmd);
   void printJobsListWithId();
   void printJobWithPid(JobEntry& job_entry);
-  void killAllJobs();
   void removeFinishedJobs();
   JobEntry * getJobById(int jobId);
   void removeJobById(int jobId);
@@ -173,6 +179,8 @@ class JobsList {
   JobEntry* jobExistsInList(int job_id);
   void removeJob(JobEntry* to_remove);
   JobEntry* getLastJob();
+  int getSize() const;
+  int getMaxJobId() const;
 };
 
 class SmallShell {

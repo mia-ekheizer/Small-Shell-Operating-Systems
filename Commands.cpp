@@ -181,8 +181,8 @@ JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(
 
 void JobsCommand::execute() {
   SmallShell &smash = SmallShell::getInstance();
+  smash->getJobsList()->removeFinishedJobs();
   smash->getJobsList()->printJobsList();
-  getJobsList()->printJobsList();
 }
 
 // ForegroundCommand
@@ -223,6 +223,37 @@ void ForegroundCommand::execute() {
   _freeArgs(args, size_args);
 }
 
+// QuitCommand methods
+QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
+
+QuitCommand::~QuitCommand() {
+  delete jobs;//DELETE?
+}
+
+QuitCommand::execute() {
+  SmallShell& smash = SmallShell::getInstance();
+  JobsList* jobs = smash.getJobsList();
+  char* args[COMMAND_MAX_ARGS];
+  int size_args = _parseCommandLine(cmd_line, args);
+  if (size_args > 1 && (strcmp(args[1], "kill") == 0)) {
+    std::cout << "smash: sending SIGKILL signal to " << jobs->getSize << " jobs:" << std::endl;
+    //TODO: kill all jobs;
+    std::vector<JobEntry*> jobsByPid;
+    for (JobEntry* job : jobs) {
+      jobsByPid.push_back(job);
+    }
+
+    for (JobEntry* job : jobsByPid) {
+      if (kill(job->getJobPid(), SIGKILL) == -1) {
+        perror("smash error: kill failed");
+      }
+      job->printWithoutJobId
+    }
+  }
+  _freeArgs(args, size_args);
+  delete this;
+  exit(0);
+}
 // ExternalCommand methods
 ExternalCommand::ExternalCommand(const char* cmd_line) : Command(cmd_line) {}
 
@@ -249,7 +280,7 @@ void ExternalCommand::execute() {
 // JobEntry methods
 JobsList::JobEntry::JobEntry(int job_id, Command* cmd, pid_t job_pid) : job_id(jod_id), cmd(cmd), job_pid(job_pid) {}
 
-pid_t JobsList::JobEntry::getJobPid() {
+pid_t JobsList::JobEntry::getJobPid() const {
   return jobPid;
 }
 
@@ -260,6 +291,13 @@ void JobsList::JobEntry::setJobId(int new_job_id) {
 int JobsList::JobEntry::getJobId() {
   return jobId;
 }
+void JobsList::JobEntry::printWithJobIdAndPid() const {
+  std::cout << "[" << this->getJobId() << "] " << cmd->getCmdLine() << " : " << this->getJobPid() << " " << std::endl;
+}
+void JobsList::JobEntry::printWithJobPid() const {
+  std::cout << this->getJobPid() << ": " << cmd->getCmdLine() << std::endl;
+}
+
 
 Command* JobsList::JobEntry::getCommand() {
   return cmd;
@@ -286,13 +324,14 @@ void JobsList::addJob(Command* cmd) {
 void JobsList::printJobsListWithId() {
   removeFinishedJobs();
   for(auto job_entry : jobs_list) {
-    cout << "[" << job_entry->getJobId() << "] " << job_entry->getCommand()->getCmdLine() << endl; 
+    std::cout << "[" << job_entry->getJobId() << "] " << job_entry->getCommand()->getCmdLine() << endl; 
   }
 }
-
+//
 void JobsList::printJobWithPid(JobsList::JobEntry& job_entry) {
-  cout << job_entry->getCommand()->getCmdLine() << job_entry->getJobPid();
+  std::cout << job_entry->getCommand()->getCmdLine() << job_entry->getJobPid();
 }
+
 
 void JobsList::removeFinishedJobs() {
   for (JobEntry it = jobs_list.begin(); it != jobs_list.end(); it++) {
@@ -317,8 +356,12 @@ void JobsList::updateMaxJobId() {
     jobs_list.setJobId(jobs_list.back()->getJobId());
   }
 }
-//TODO: add getMaxJobId method
-
+int JobsList::getSize() const {
+  return jobs_list.size();
+}
+int JobsList::getMaxJobId() const {
+    return max_job_id;
+  }
 std::vector<JobEntry*>* getJobsList() const {
   return *jobs_list;
 }
@@ -425,22 +468,21 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     return new ChangeDirCommand(cmd_line);
   }
   else if (firstWord.compare("jobs") == 0) {
-    return new JobsCommand(cmd_line);
+    return new JobsCommand(cmd_line, this->jobs);
   }
   else if (firstWord.compare("fg") == 0) {
-    return new ForegroundCommand(cmd_line);
+    return new ForegroundCommand(cmd_line, this->jobs);
   }
   else if (firstWord.compare("quit") == 0) {
-    return new QuitCommand(cmd_line);
+    return new QuitCommand(cmd_line, this->jobs);
   }
   else if (firstWord.compare("kill") == 0) {
-    return new KillCommand(cmd_line);
+    return new KillCommand(cmd_line, this->jobs);
   }
   else {
     // TODO: add Special and External Commands
     return new ExternalCommand(cmd_line);
   }
-  return nullptr;
 }
 
 SmallShell::~SmallShell() {
