@@ -106,7 +106,7 @@ void ChpromptCommand::execute() {
   char* args[COMMAND_MAX_ARGS];
   int num_of_args = _parseCommandLine(cmd_line, args);
   SmallShell& smash = SmallShell::getInstance();
-  if (num_of_args == 0) {
+  if (num_of_args == 0) { // TODO: ==1? 
     smash.setPromptName(WHITESPACE);
   }
   else {
@@ -119,7 +119,7 @@ void ChpromptCommand::execute() {
 ShowPidCommand::ShowPidCommand(const char* cmd_line) : BuiltInCommand(cmd_line){}
 
 void ShowPidCommand::execute() {
-  std::cout << "smash pid is " << getpid() << std::endl; //TODO: is endl or \n?
+  std::cout << "smash pid is " << getpid() << std::endl; //TODO: shouldn't we get an Instance of smallshell?
 }
 
 // GetCurrDirCommand methods
@@ -176,7 +176,7 @@ void ChangeDirCommand::execute() {
 }
 
 // JobsCommand methods
-JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line)
+JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line) jobs(jobs)
 {}
 
 void JobsCommand::execute() {
@@ -187,7 +187,9 @@ void JobsCommand::execute() {
 
 // ForegroundCommand
 ForegroundCommand::ForegroundCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
-
+ForegroundCommand::~ForegroundCommand() {
+  //TODO: delete jobs; or not?
+}
 void ForegroundCommand::execute() {
   SmallShell& smash = SmallShell::getInstance();
   JobsList* jobs = smash.getJobsList();
