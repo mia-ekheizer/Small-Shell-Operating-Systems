@@ -83,6 +83,12 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
+bool _isComplexCommand(const char* cmd_line) {
+  string as_string = string(cmd_line); 
+  return (as_string.find_first_of('*') != string::npos ||
+  as_string.find_first_of('?') != string::npos);
+}
+
 //Command methods
 Command::Command(const char* cmd_line) : cmd_line(cmd_line) {}
 
@@ -221,15 +227,23 @@ void ForegroundCommand::execute() {
 ExternalCommand::ExternalCommand(const char* cmd_line) : Command(cmd_line) {}
 
 void ExternalCommand::execute() {
-  /*TODO: call _isBackgroundComamnd() and check the &:
-  If there is & (run in background), run the following steps:
-  Add the command to the jobs list.
-  Check if it is a simple or complex external command (need to build a function that does that, using find_first_of()).
-  If it is simple: pass relevant arguments to execv.
-  If it is complex: execute as a new instance of bash (need to figure out what it means).
-  No need to wait for the command copletion.
-  If there is no &, run in foreground.
-  */
+ if (_isBackgroundComamnd(cmd_line)) {
+  Command* new_cmd = new Command(cmd_line);
+  SmallShell& smash = SmallShell::getInstance();
+  smash.getJobsList()->addJob(new_cmd);
+  pid_t pid = fork();
+  if (_isComplexCommand(cmd_line)) {
+    // TODO: execute as a new instance of bash (read about each syscall in the exec family).
+  }
+  else {
+    // TODO: pass relevant arguments and parameters.
+    char* argv[] = {};
+    execv();
+  }
+ }
+ else {
+  // TODO: run in foreground (need to figure this part out).
+ }
 }
 
 // JobEntry methods
