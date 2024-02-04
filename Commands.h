@@ -152,9 +152,13 @@ class JobsList {
     pid_t getJobPid() const;
     void setJobId(int new_job_id);
     int getJobId() const;
-    void printWithJobIdAndPid() const; // TODO
-    void printWithJobPid() const; // TODO:
+    void printJobIdAndPid() const; //for jobsCommand::execute
+    void printJobPid() const;  // for quitCommand::execute
     Command* getCommand() const;
+  };
+  class CompareJobEntryUsingPid { // needed for sorting jobs list by pid
+    public:
+      bool operator()(const JobEntry* job1, const JobEntry* job2) const;
   };
  private:
   // TODO: Add your data members
@@ -164,8 +168,7 @@ class JobsList {
   JobsList();
   ~JobsList();
   void addJob(Command* cmd);
-  void printJobsListWithId();
-  void printJobWithPid(JobEntry& job_entry);
+  void printJobsListWithIdandPid(); // for jobsCommand::execute
   void removeFinishedJobs();
   JobEntry * getJobById(int jobId);
   void removeJobById(int jobId);
@@ -181,6 +184,7 @@ class JobsList {
   JobEntry* getLastJob();
   int getSize() const;
   int getMaxJobId() const;
+  void setMaxJobId(int new_max_job_id);
 };
 
 class SmallShell {

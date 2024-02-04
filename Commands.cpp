@@ -172,7 +172,7 @@ void ChangeDirCommand::execute() {
       }
     }
   } 
-  _freeArgs(args, size_args); 
+  _freeArgs(args, size_args);
 }
 
 // JobsCommand methods
@@ -182,7 +182,7 @@ JobsCommand::JobsCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
 void JobsCommand::execute() {
   SmallShell &smash = SmallShell::getInstance();
   smash->getJobsList()->removeFinishedJobs();
-  smash->getJobsList()->printJobsList();
+  smash->getJobsList()->printJobsListWithIdandPid();
 }
 
 // ForegroundCommand
@@ -236,17 +236,20 @@ QuitCommand::execute() {
   if (size_args > 1 && (strcmp(args[1], "kill") == 0)) {
     std::cout << "smash: sending SIGKILL signal to " << jobs->getSize << " jobs:" << std::endl;
     //TODO: kill all jobs;
-    std::vector<JobEntry*> jobsByPid;
-    for (JobEntry* job : jobs) {
-      jobsByPid.push_back(job);
+    std::set<JobEntry*, CompareJobEntryUsingPid > jobsByPid; //new set, ordered by pid
+    
+    for (JobEntry* job : jobs) { // fill the new set
+      jobsByPid.insert(job);
     }
 
     for (JobEntry* job : jobsByPid) {
       if (kill(job->getJobPid(), SIGKILL) == -1) {
         perror("smash error: kill failed");
       }
-      job->printWithoutJobId
+      job->printJobPid();
     }
+    jobs.clear();
+    this.setMaxJobId(0);
   }
   _freeArgs(args, size_args);
   delete this;
@@ -317,16 +320,20 @@ void JobsList::JobEntry::setJobId(int new_job_id) {
 int JobsList::JobEntry::getJobId() {
   return jobId;
 }
-void JobsList::JobEntry::printWithJobIdAndPid() const {
-  std::cout << "[" << this->getJobId() << "] " << cmd->getCmdLine() << " : " << this->getJobPid() << " " << std::endl;
+void JobsList::JobEntry::printJobIdAndPid() const {
+  std::cout << "[" << this->getJobId() << "] " << this->getCommand()->getCmdLine() << " : " << this->getJobPid() << std::endl;
 }
-void JobsList::JobEntry::printWithJobPid() const {
-  std::cout << this->getJobPid() << ": " << cmd->getCmdLine() << std::endl;
+void JobsList::JobEntry::printJobPid() const {
+  std::cout << this->getJobPid() << ": " << this->getCommand()->getCmdLine() << std::endl;
 }
 
 
 Command* JobsList::JobEntry::getCommand() {
   return cmd;
+}
+
+bool JobsList::CompareJobEntryUsingPid::operator()(const JobEntry* job1, const JobEntry* job2) const {
+  return job1->getJobPid() < job2->getJobPid();
 }
 
 // JobsList methods
@@ -347,15 +354,11 @@ void JobsList::addJob(Command* cmd) {
   //TODO: Does the max_job_id change if the last job finished?
 }
 
-void JobsList::printJobsListWithId() {
+void JobsList::printJobsListWithIdandPid() { //for jobs command usage
   removeFinishedJobs();
   for(auto job_entry : jobs_list) {
-    std::cout << "[" << job_entry->getJobId() << "] " << job_entry->getCommand()->getCmdLine() << endl; 
+    std::cout << "[" << job_entry->getJobId() << "] " << job_entry->getCommand()->getCmdLine() << std::endl; 
   }
-}
-//
-void JobsList::printJobWithPid(JobsList::JobEntry& job_entry) {
-  std::cout << job_entry->getCommand()->getCmdLine() << job_entry->getJobPid();
 }
 
 
@@ -388,6 +391,9 @@ int JobsList::getSize() const {
 int JobsList::getMaxJobId() const {
     return max_job_id;
   }
+void JobsList::setMaxJobId(int new_max_job_id) {
+  max_job_id = new_max_job_id;
+}
 std::vector<JobEntry*>* getJobsList() const {
   return *jobs_list;
 }
