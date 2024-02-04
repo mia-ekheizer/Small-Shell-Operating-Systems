@@ -116,16 +116,14 @@ void ChpromptCommand::execute() {
 }
 
 // ShowPidCommand methods
-ShowPidCommand::ShowPidCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
-{}
+ShowPidCommand::ShowPidCommand(const char* cmd_line) : BuiltInCommand(cmd_line){}
 
 void ShowPidCommand::execute() {
   std::cout << "smash pid is " << getpid() << std::endl; //TODO: is endl or \n?
 }
 
 // GetCurrDirCommand methods
-GetCurrDirCommand::GetCurrDirCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
-{}
+GetCurrDirCommand::GetCurrDirCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
 
 void GetCurrDirCommand::execute() {
   char arr[COMMAND_MAX_PATH_LENGHT];
@@ -317,18 +315,14 @@ void JobsList::updateMaxJobId() {
     jobs_list.setJobId(jobs_list.back()->getJobId());
   }
 }
+//TODO: add getMaxJobId method
 
 std::vector<JobEntry*>* getJobsList() const {
   return *jobs_list;
 }
 
 bool JobsList::isEmpty() const {
-  if (jobs_list.empty()) {
-    return true;
-  }
-  else {
-    return false;
-  }
+  return JobsList.empty();
 }
 
 JobsList::JobEntry* JobsList::jobExistsInList(int job_id) {
@@ -357,6 +351,9 @@ JobsList::JobEntry* JobsList::getLastJob() {
 SmallShell::SmallShell() { // implement as singleton
   // TODO: add your implementation
 }
+SmallShell::~SmallShell() { 
+  // TODO: add your implementation
+}
 
 std::string SmallShell::getPromptName() const {
     return prompt_name;
@@ -373,7 +370,7 @@ pid_t SmallShell::getShellPid() const {
   return this->shellPid;
 }
 
-void SmallShell::setShellPid(int pid) {
+void SmallShell::setShellPid(const pid_t shellPid) {
   this->shellPid = getpid();
 }
 
@@ -392,9 +389,11 @@ JobsList* SmallShell::getJobsList() const {
 bool SmallShell::_isBuiltInCommand(string cmd_name) {
   string copy_cmd = cmd_name;
   _removeBackgroundSign(copy_cmd);
+  copy_cmd = _trim(copy_cmd);
+  string firstWord = copy_cmd.substr(0, copy_cmd.find_first_of(" \n"));
   if (copy_cmd.compare("chprompt") == 0 || copy_cmd.compare("showpid") == 0 || copy_cmd.compare("pwd") == 0 ||
-  copy_cmd.compare("cd") == 0 || copy_cmd.compare("jobs") == 0 || copy_cmd.compare("fg") == 0 ||
-  copy_cmd.compare("quit") == 0 || copy_cmd.compare("kill") == 0) {
+        copy_cmd.compare("cd") == 0 || copy_cmd.compare("jobs") == 0 || copy_cmd.compare("fg") == 0 ||
+          copy_cmd.compare("quit") == 0 || copy_cmd.compare("kill") == 0) { //TODO: add more built in commands
     return true;
   }
   else {
