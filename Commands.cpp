@@ -176,7 +176,7 @@ void ChangeDirCommand::execute() {
 }
 
 // JobsCommand methods
-JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line) jobs(jobs)
+JobsCommand::JobsCommand(const char* cmd_line) : BuiltInCommand(cmd_line)
 {}
 
 void JobsCommand::execute() {
@@ -186,10 +186,8 @@ void JobsCommand::execute() {
 }
 
 // ForegroundCommand
-ForegroundCommand::ForegroundCommand(const char* cmd_line, JobsList* jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
-ForegroundCommand::~ForegroundCommand() {
-  //TODO: delete jobs; or not?
-}
+ForegroundCommand::ForegroundCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
+
 void ForegroundCommand::execute() {
   SmallShell& smash = SmallShell::getInstance();
   JobsList* jobs = smash.getJobsList();
@@ -227,24 +225,52 @@ void ForegroundCommand::execute() {
 ExternalCommand::ExternalCommand(const char* cmd_line) : Command(cmd_line) {}
 
 void ExternalCommand::execute() {
- if (_isBackgroundComamnd(cmd_line)) {
+  bool is_background_command = false;
+  if (_isBackgroundComamnd(cmd_line)) {
+    is_background_command = true;
+    _removeBackgroundSign(cmd_line);
+  }
   Command* new_cmd = new Command(cmd_line);
   SmallShell& smash = SmallShell::getInstance();
-  smash.getJobsList()->addJob(new_cmd);
+  char* args[COMMAND_MAX_ARGS];
+  int size_args = _parseCommandLine(cmd_line, args);
   pid_t pid = fork();
-  if (_isComplexCommand(cmd_line)) {
-    // TODO: execute as a new instance of bash (read about each syscall in the exec family).
+  if (pid == -1) {
+    perror("smash error: fork failed");
+    exit(1);
   }
-  else {
-    // TODO: pass relevant arguments and parameters.
-    char* argv[] = {};
-    execv();
+  else if (pid == 0) { // child process executes the command
+    if (setpgrp() == -1) {
+      perror("smash error: setpgrp failed");
+      exit(1);
+    }
+    if (_isComplexCommand(cmd_line)) {
+      // need to pass the args as a list
+      if (execlp("/bin/bash", "-c", args) == -1) {
+        perror("smash error: execvp failed");
+        exit(1);
+      }
+    }
+    else {
+      if (execvp(args[0], args) == -1) {
+        perror("smash error: execvp failed");
+        exit(1);
+      }
+    }
   }
+  else { // parent process just adds the command to the jobs list if it is a background command
+    if (is_background_command) {
+      smash.getJobsList()->addJob(new_cmd);
+    }
+    else { // if not, the parent waits for the child to finish
+      if (waitpid(pid, nullptr) == -1) {
+        perror("smash error: waitpid failed");
+        exit(1);
+      }
+    }
+  }
+  _freeArgs();
  }
- else {
-  // TODO: run in foreground (need to figure this part out).
- }
-}
 
 // JobEntry methods
 JobsList::JobEntry::JobEntry(int job_id, Command* cmd, pid_t job_pid) : job_id(jod_id), cmd(cmd), job_pid(job_pid) {}
