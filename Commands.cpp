@@ -377,7 +377,7 @@ void ExternalCommand::execute()
     exit(1);
   }
   else if (pid == 0)
-  { // child process executes the command
+  { // child process executes the command.
     if (setpgrp() == -1)
     {
       perror("smash error: setpgrp failed");
@@ -385,14 +385,13 @@ void ExternalCommand::execute()
     }
     if (_isComplexCommand(cmd_line))
     {
-      // need to pass the args as a list
-      if (execlp("/bin/bash", "-c", args) == -1)
+      if (execlp("/bin/bash", "-c", cmd_line) == -1)
       {
         perror("smash error: execvp failed");
         exit(1);
       }
     }
-    else
+    else // simple external command.
     {
       if (execvp(args[0], args) == -1)
       {
@@ -402,13 +401,13 @@ void ExternalCommand::execute()
     }
   }
   else
-  { // parent process just adds the command to the jobs list if it is a background command
+  { // parent process.
     if (is_background_command)
-    {
+    { // adds the command to the jobs list if it is a background command, no waiting.
       smash.getJobsList()->addJob(new_cmd);
     }
     else
-    { // if not, the parent waits for the child to finish
+    { // if it is a foreground command, the parent waits for the child to finish.
       if (waitpid(pid, nullptr) == -1)
       {
         perror("smash error: waitpid failed");
