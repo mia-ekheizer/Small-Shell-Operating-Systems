@@ -213,7 +213,7 @@ void JobsCommand::execute()
 {
   SmallShell &smash = SmallShell::getInstance();
   smash->getJobsList()->removeFinishedJobs();
-  smash->getJobsList()->printJobsListWithIdandPid();
+  smash->getJobsList()->printJobsListWithId();
 }
 
 // ForegroundCommand
@@ -476,7 +476,7 @@ void JobsList::addJob(Command *cmd)
   // TODO: Does the max_job_id change if the last job finished?
 }
 
-void JobsList::printJobsListWithIdandPid()
+void JobsList::printJobsListWithId()
 { // for jobs command usage
   removeFinishedJobs();
   for (auto job_entry : jobs_list)

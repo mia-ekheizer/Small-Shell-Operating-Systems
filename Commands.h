@@ -152,7 +152,7 @@ class JobsList {
     pid_t getJobPid() const;
     void setJobId(int new_job_id);
     int getJobId() const;
-    void printJobIdAndPid() const; //for jobsCommand::execute
+    void printJobIdAndPid() const;
     void printJobPid() const;  // for quitCommand::execute
     Command* getCommand() const;
   };
@@ -168,7 +168,7 @@ class JobsList {
   JobsList();
   ~JobsList();
   void addJob(Command* cmd);
-  void printJobsListWithIdandPid(); // for jobsCommand::execute
+  void printJobsListWithId(); // for jobsCommand::execute
   void removeFinishedJobs();
   JobEntry * getJobById(int jobId);
   void removeJobById(int jobId);
