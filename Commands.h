@@ -98,7 +98,8 @@ public:
 };
 
 class ExternalCommand : public Command {
- public:
+  
+  public:
   ExternalCommand(const char* cmd_line);
   virtual ~ExternalCommand() {}
   void execute() override;

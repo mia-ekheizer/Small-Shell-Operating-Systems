@@ -261,12 +261,9 @@ void ForegroundCommand::execute()
 }
 
 // QuitCommand methods
-QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
+QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}//TODO: is jobs useless?
 
-QuitCommand::~QuitCommand()
-{
-  delete jobs; // DELETE?
-}
+QuitCommand::~QuitCommand(){}
 
 QuitCommand::execute()
 {
@@ -288,12 +285,12 @@ QuitCommand::execute()
     {
       if (kill(job->getJobPid(), SIGKILL) == -1)
       {
-        perror("smash error: kill failed");
+        perror("smash error: kill failed"); //TODO: exit(1)?
       }
       job->printJobPid();
     }
-    jobs.clear();
     this.setMaxJobId(0);
+    delete jobs;
   }
   _freeArgs(args, size_args);
   delete this;
@@ -301,7 +298,7 @@ QuitCommand::execute()
 }
 
 // KillCommand methods
-KillCommand::KillCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}
+KillCommand::KillCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}//TODO: is jobs useless?
 
 KillCommand::~KillCommand()
 {
@@ -317,7 +314,7 @@ KillCommand::execute()
     std::string sigNumStr = str(args[1]).substr(1); // remove the "-" sign and take the rest of the string
     int jobId;
     int sigNum;
-
+    //TODO: what if we werent sent '-' before the integer 
     try
     {
       jobId = std::stoi(args[2]);
@@ -345,7 +342,6 @@ KillCommand::execute()
       else if (status == 0)
       {
         std::cout << "signal number " << sigNum << " was sent to pid " << job->getJobPid() << std::endl;
-        // TODO: is SIGCONT relevant here?
       }
     }
     else
@@ -366,7 +362,7 @@ void ExternalCommand::execute()
     is_background_command = true;
     _removeBackgroundSign(cmd_line);
   }
-  Command *new_cmd = new Command(cmd_line);
+  
   SmallShell &smash = SmallShell::getInstance();
   char *args[COMMAND_MAX_ARGS];
   int size_args = _parseCommandLine(cmd_line, args);
@@ -383,11 +379,11 @@ void ExternalCommand::execute()
       perror("smash error: setpgrp failed");
       exit(1);
     }
-    if (_isComplexCommand(cmd_line))
+    else if (_isComplexCommand(cmd_line))
     {
       if (execlp("/bin/bash", "-c", cmd_line) == -1)
       {
-        perror("smash error: execvp failed");
+        perror("smash error: execlp failed");
         exit(1);
       }
     }
@@ -404,7 +400,7 @@ void ExternalCommand::execute()
   { // parent process.
     if (is_background_command)
     { // adds the command to the jobs list if it is a background command, no waiting.
-      smash.getJobsList()->addJob(new_cmd);
+      smash.getJobsList()->addJob(this);
     }
     else
     { // if it is a foreground command, the parent waits for the child to finish.
@@ -502,9 +498,9 @@ void JobsList::removeFinishedJobs()
   }
   updateMaxJobId();
 }
-JobList::JobEntry *JobList::getJobById(int jobId)
+JobsList::JobEntry *JobList::getJobById(int jobId)
 {
-  for (JobEntry *it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (JobsList::JobEntry *it = jobs_list.begin(); it != jobs_list.end(); it++)
   {
     if (jobId == it->getJobId())
     {
@@ -513,9 +509,9 @@ JobList::JobEntry *JobList::getJobById(int jobId)
   }
   return nullptr;
 }
-void removeJobById(int jobId)
+void JobsList::removeJobById(int jobId)
 {
-  for (JobEntry *it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (JobsList::JobEntry *it = jobs_list.begin(); it != jobs_list.end(); it++)
   {
     if (jobId == it->getJobId())
     {
@@ -561,7 +557,7 @@ bool JobsList::isEmpty() const
 
 JobsList::JobEntry *JobsList::jobExistsInList(int job_id)
 {
-  for (JobEntry *it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (JobsList::JobEntry *it = jobs_list.begin(); it != jobs_list.end(); it++)
   {
     if (job_id == it->jobId && waitpid(it->getJobPid(), nullptr, WNOHANG) != -1)
     {
@@ -573,7 +569,7 @@ JobsList::JobEntry *JobsList::jobExistsInList(int job_id)
 
 void JobsList::removeJob(JobsList::JobEntry *to_remove)
 {
-  for (JobEntry it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (JobsList::JobEntry it = jobs_list.begin(); it != jobs_list.end(); it++)
   {
     if (to_remove->getJobId() == it->getJobId())
     {
