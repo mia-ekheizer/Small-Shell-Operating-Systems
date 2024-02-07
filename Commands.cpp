@@ -304,6 +304,7 @@ KillCommand::~KillCommand()
 {
   delete jobs;
 }
+
 KillCommand::execute()
 {
   SmallShell &smash = SmallShell::getInstance();
@@ -351,6 +352,7 @@ KillCommand::execute()
   }
   _freeArgs(args, size_args);
 }
+
 // ExternalCommand methods
 ExternalCommand::ExternalCommand(const char *cmd_line) : Command(cmd_line) {}
 
@@ -414,6 +416,36 @@ void ExternalCommand::execute()
   _freeArgs();
 }
 
+// Special commands
+
+// ChmodCommand methods
+ChmodCommand::ChmodCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
+
+void ChmodCommand::execute() {
+  SmallShell &smash = SmallShell::getInstance();
+  char *args[COMMAND_MAX_ARGS];
+  int size_args = _parseCommandLine(cmd_line, args);
+  string err_msg = "smash error: chmod: invalid arguments";
+  if (size_args > 3) {
+    cerr << err_msg << endl;
+  }
+  else {
+    mode_t new_mode;
+    try {
+      new_mode = stoi(args[1].c_str(), nullptr, 8); // convert the given mode to octal base number.
+    } catch (invalid_argument &e) {
+      cerr << err_msg << endl;
+      _freeArgs();
+      return;
+    }
+    if (chmod(args[2], new_mode) == -1) {
+      perror("smash error: fork failed");
+      exit(1);
+    }
+  }
+  _freeArgs();
+}
+
 // JobEntry methods
 JobsList::JobEntry::JobEntry(int job_id, Command *cmd, pid_t job_pid) : job_id(jod_id), cmd(cmd), job_pid(job_pid) {}
 
@@ -431,10 +463,12 @@ int JobsList::JobEntry::getJobId()
 {
   return jobId;
 }
+
 void JobsList::JobEntry::printJobIdAndPid() const
 {
   std::cout << "[" << this->getJobId() << "] " << this->getCommand()->getCmdLine() << " : " << this->getJobPid() << std::endl;
 }
+
 void JobsList::JobEntry::printJobPid() const
 {
   std::cout << this->getJobPid() << ": " << this->getCommand()->getCmdLine() << std::endl;
@@ -498,6 +532,7 @@ void JobsList::removeFinishedJobs()
   }
   updateMaxJobId();
 }
+
 JobsList::JobEntry *JobList::getJobById(int jobId)
 {
   for (JobsList::JobEntry *it = jobs_list.begin(); it != jobs_list.end(); it++)
@@ -509,6 +544,7 @@ JobsList::JobEntry *JobList::getJobById(int jobId)
   }
   return nullptr;
 }
+
 void JobsList::removeJobById(int jobId)
 {
   for (JobsList::JobEntry *it = jobs_list.begin(); it != jobs_list.end(); it++)
@@ -533,18 +569,22 @@ void JobsList::updateMaxJobId()
     jobs_list.setJobId(jobs_list.back()->getJobId());
   }
 }
+
 int JobsList::getSize() const
 {
   return jobs_list.size();
 }
+
 int JobsList::getMaxJobId() const
 {
   return max_job_id;
 }
+
 void JobsList::setMaxJobId(int new_max_job_id)
 {
   max_job_id = new_max_job_id;
 }
+
 std::vector<JobEntry *> *getJobsList() const
 {
   return *jobs_list;
@@ -589,6 +629,7 @@ SmallShell::SmallShell()
 { // implement as singleton
   // TODO: add your implementation
 }
+
 SmallShell::~SmallShell()
 {
   // TODO: add your implementation
