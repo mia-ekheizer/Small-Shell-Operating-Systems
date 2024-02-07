@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include <iomanip>
 #include "Commands.h"
+#include "sys/stat.h"
 
 const std::string WHITESPACE " \t\n\r\f\v";
 
@@ -239,7 +240,7 @@ void ForegroundCommand::execute()
     {
       JobsList::JobEntry *to_foreground = jobs->getLastJob();
       cout << to_foreground->getCommand()->getCmdLine() << " " << to_foreground->getJobPid() << endl;
-      smash.moveToForeground(to_foreground->getJobPid());
+      smash.setCurrFgProcess(to_foreground->getJobPid());
       jobs->removeJob(to_foreground);
     }
   }
@@ -253,7 +254,7 @@ void ForegroundCommand::execute()
     else
     {
       cout << to_foreground->getCommand()->getCmdLine() << " " << to_string(to_foreground->getJobPid()) << endl;
-      smash.moveToForeground(to_foreground->getJobPid());
+      smash.setCurrFgProcess(to_foreground->getJobPid());
       jobs->removeJob(to_foreground);
     }
   }
@@ -406,11 +407,13 @@ void ExternalCommand::execute()
     }
     else
     { // if it is a foreground command, the parent waits for the child to finish.
+      smash.setCurrFgPid(pid);
       if (waitpid(pid, nullptr) == -1)
       {
         perror("smash error: waitpid failed");
         exit(1);
       }
+      smash.setCurrFgPid(-1);
     }
   }
   _freeArgs();
@@ -432,14 +435,14 @@ void ChmodCommand::execute() {
   else {
     mode_t new_mode;
     try {
-      new_mode = stoi(args[1].c_str(), nullptr, 8); // convert the given mode to octal base number.
+      new_mode = stoi(args[1].c_str(), nullptr, 8); // convert the given mode to an octal base integer.
     } catch (invalid_argument &e) {
       cerr << err_msg << endl;
       _freeArgs();
       return;
     }
     if (chmod(args[2], new_mode) == -1) {
-      perror("smash error: fork failed");
+      perror("smash error: chmod failed");
       exit(1);
     }
   }
@@ -519,14 +522,13 @@ void JobsList::removeFinishedJobs()
   for (JobEntry it = jobs_list.begin(); it != jobs_list.end(); it++)
   {
     JobEntry *tmp = *it;
-    pid_t pid_status = waitpid(tmp->jobPid, nullptr, WNOHANG);
-    if (pid_status == tmp->getJobPid() || pid_status == -1)
+    if (kill(tmp->jobPid, 0) == -1) // job finished
     {
       delete tmp;
       it = jobs_list.erase(it);
     }
     else
-    { // pid_status == 0
+    { // job not finished
       it++;
     }
   }
@@ -721,11 +723,11 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   }
   else if (firstWord.compare("jobs") == 0)
   {
-    return new JobsCommand(cmd_line, this->jobs);
+    return new JobsCommand(cmd_line);
   }
   else if (firstWord.compare("fg") == 0)
   {
-    return new ForegroundCommand(cmd_line, this->jobs);
+    return new ForegroundCommand(cmd_line);
   }
   else if (firstWord.compare("quit") == 0)
   {
@@ -734,6 +736,10 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   else if (firstWord.compare("kill") == 0)
   {
     return new KillCommand(cmd_line, this->jobs);
+  }
+  else if (firstWord.compare("chmod") == 0)
+  {
+    return new ChmodCommand(cmd_line);
   }
   else
   {
@@ -752,4 +758,12 @@ void SmallShell::executeCommand(const char *cmd_line)
   Command *cmd = CreateCommand(cmd_line);
   cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
+}
+
+pid_t SmallShell::getCurrFgPid() const {
+  return curr_fg_pid;
+}
+
+void setCurrFgPid(const pid_t new_process_pid) {
+  curr_fg_pid = new_process;
 }

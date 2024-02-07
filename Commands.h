@@ -98,7 +98,6 @@ public:
 };
 
 class ExternalCommand : public Command {
-  
   public:
   ExternalCommand(const char* cmd_line);
   virtual ~ExternalCommand() {}
@@ -191,8 +190,9 @@ class SmallShell {
   // TODO: Add your data members
   pid_t shellPid;
   char* last_dir;
-  std::string prompt_name = "smash> ";
+  string prompt_name = "smash> ";
   JobsList* jobs;
+  pid_t curr_fg_pid = -1;
   SmallShell();
  public:
   Command *CreateCommand(const char* cmd_line);
@@ -206,18 +206,20 @@ class SmallShell {
   }
   ~SmallShell();
   void executeCommand(const char* cmd_line);
-  // TODO: add extra methods as needed
-  std::string getPromptName() const; // for chprompt usage
+  string getPromptName() const; // for chprompt usage
   
   void setPromptName(const std::string& name);  // for chprompt usage
   pid_t getShellPid() const; // for showpid usage
 
   void setLastDir(const char* new_dir); // for cd usage
-  char* getLastDir() const; // for cd usage
+  char* getLastDir() const;
 
   JobsList* getJobsList() const; // for jobs and fg usage
 
-  bool _isBuiltInCommand(const string cmd_name);
+  bool _isBuiltInCommand(const string cmd_name); // for create command usage
+
+  pid_t getCurrFgPid() const;
+  void setCurrFgPid(const pid_t new_process_pid);
 };
 
 #endif //SMASH_COMMAND_H_
