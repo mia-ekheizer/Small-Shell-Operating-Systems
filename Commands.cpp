@@ -701,6 +701,11 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
 {                                         // TODO: fix beginning
   string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+  /*
+  if(isRedirectionCommand) ...
+  else if (isPipeCommand)...
+  else if (isTimeoutCommand) ... etc.
+  */
   if (_isBuiltInCommand(firstWord))
   {
     _removeBackgroundSign(const_cast<char *>(cmd_line));
