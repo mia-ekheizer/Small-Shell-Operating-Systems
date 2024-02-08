@@ -8,9 +8,9 @@
 #include "Commands.h"
 #include "sys/stat.h"
 
-const std::string WHITESPACE " \t\n\r\f\v";
-
 using namespace std;
+
+const std::string WHITESPACE " \t\n\r\f\v";
 
 #if 0
 #define FUNC_ENTRY() \
@@ -118,13 +118,13 @@ void ChpromptCommand::execute()
   char *args[COMMAND_MAX_ARGS];
   int num_of_args = _parseCommandLine(cmd_line, args);
   SmallShell &smash = SmallShell::getInstance();
-  if (num_of_args == 0)
-  { // TODO: ==1?
+  if (num_of_args == 1)
+  { 
     smash.setPromptName(WHITESPACE);
   }
   else
   {
-    smash.setPromptName(args[0]);
+    smash.setPromptName(args[1]);
   }
   _freeArgs(args, num_of_args);
 }
@@ -134,7 +134,8 @@ ShowPidCommand::ShowPidCommand(const char *cmd_line) : BuiltInCommand(cmd_line) 
 
 void ShowPidCommand::execute()
 {
-  std::cout << "smash pid is " << getpid() << std::endl; // TODO: shouldn't we get an Instance of smallshell?
+  SmallShell &smash = SmallShell::getInstance();
+  std::cout << "smash pid is " << smash.getpid() << std::endl;
 }
 
 // GetCurrDirCommand methods
@@ -163,7 +164,7 @@ void ChangeDirCommand::execute()
   SmallShell &smash = SmallShell::getInstance();
   char *args[COMMAND_MAX_ARGS];
   int size_args = _parseCommandLine(cmd_line, args);
-  char *curr_dir = getcwd(args, size_args);
+  char *curr_dir = getcwd();
   if (!curr_dir)
   {
     perror("smash error: getcwd failed");
@@ -171,10 +172,6 @@ void ChangeDirCommand::execute()
   if (size_args > 2)
   {
     std::cerr << "smash error: cd: too many arguments" << std::endl;
-  }
-  else if (size_args == 1)
-  {
-    // TODO: what if we only get cd? - piazza
   }
   else
   { // if size_args == 2
@@ -226,7 +223,7 @@ void ForegroundCommand::execute()
   JobsList *jobs = smash.getJobsList();
   char *args[COMMAND_MAX_ARGS];
   int size_args = _parseCommandLine(cmd_line, args);
-  if (size_args > 2 || typeof(args[1]) != int)
+  if (size_args > 2 || typeof(args[1]) != typeof(int))
   {
     cerr << "smash error: fg: invalid arguments" << endl;
   }
@@ -262,9 +259,7 @@ void ForegroundCommand::execute()
 }
 
 // QuitCommand methods
-QuitCommand::QuitCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}//TODO: is jobs useless?
-
-QuitCommand::~QuitCommand(){}
+QuitCommand::QuitCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {}
 
 QuitCommand::execute()
 {
@@ -286,12 +281,10 @@ QuitCommand::execute()
     {
       if (kill(job->getJobPid(), SIGKILL) == -1)
       {
-        perror("smash error: kill failed"); //TODO: exit(1)?
+        perror("smash error: kill failed");
       }
       job->printJobPid();
     }
-    this.setMaxJobId(0);
-    delete jobs;
   }
   _freeArgs(args, size_args);
   delete this;
@@ -299,27 +292,26 @@ QuitCommand::execute()
 }
 
 // KillCommand methods
-KillCommand::KillCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line), jobs(jobs) {}//TODO: is jobs useless?
-
-KillCommand::~KillCommand()
-{
-  delete jobs;
-}
+KillCommand::KillCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {}
 
 KillCommand::execute()
 {
   SmallShell &smash = SmallShell::getInstance();
   char *args[COMMAND_MAX_ARGS];
   int size_args = _parseCommandLine(cmd_line, args);
-  if (size_args == 3)
-  {                                                 // if valid command size
-    std::string sigNumStr = str(args[1]).substr(1); // remove the "-" sign and take the rest of the string
+  if (size_args == 3) // if valid command size
+  {
+    if (*args[1] != '-') {
+      std::cerr << "smash error: kill: invalid arguments" << std::endl;
+      _freeArgs(args, size_args);
+      return;
+    }                                                 
+    std::string sigNumStr = substr(str(args[1]), 1); // remove the "-" sign and take the rest of the string
     int jobId;
     int sigNum;
-    //TODO: what if we werent sent '-' before the integer 
     try
     {
-      jobId = std::stoi(args[2]);
+      jobId = std::stoi(str(args[2]));
       sigNum = std::stoi(sigNumStr);
     }
     catch (std::invalid_argument &e)
@@ -351,6 +343,7 @@ KillCommand::execute()
       std::cerr << "smash error: kill: invalid arguments" << endl;
     }
   }
+  smash.updateMaxJobId();
   _freeArgs(args, size_args);
 }
 
@@ -373,14 +366,12 @@ void ExternalCommand::execute()
   if (pid == -1)
   {
     perror("smash error: fork failed");
-    exit(1);
   }
   else if (pid == 0)
   { // child process executes the command.
     if (setpgrp() == -1)
     {
       perror("smash error: setpgrp failed");
-      exit(1);
     }
     else if (_isComplexCommand(cmd_line))
     {
@@ -411,7 +402,6 @@ void ExternalCommand::execute()
       if (waitpid(pid, nullptr) == -1)
       {
         perror("smash error: waitpid failed");
-        exit(1);
       }
       smash.setCurrFgPid(-1);
     }
@@ -443,7 +433,6 @@ void ChmodCommand::execute() {
     }
     if (chmod(args[2], new_mode) == -1) {
       perror("smash error: chmod failed");
-      exit(1);
     }
   }
   _freeArgs();
@@ -505,7 +494,6 @@ void JobsList::addJob(Command *cmd)
   max_job_id++;
   JobEntry *new_job = new JobEntry(max_job_id, cmd, getpid());
   jobs_list.insert(new_job);
-  // TODO: Does the max_job_id change if the last job finished?
 }
 
 void JobsList::printJobsListWithId()
@@ -627,17 +615,81 @@ JobsList::JobEntry *JobsList::getLastJob()
 }
 
 // SmallShell methods
-SmallShell::SmallShell()
+SmallShell::SmallShell() : shellPid(getpid()), last_dir(getcwd()), 
+prompt_name("smash> "), jobs(new JobsList()), crr_fg_pid(-1)
 { // implement as singleton
-  // TODO: add your implementation
+}
+
+/**
+ * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
+ */
+Command *SmallShell::CreateCommand(const char *cmd_line)
+{                                        
+  string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
+  string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+  /*
+  if(isRedirectionCommand) ...
+  else if (isPipeCommand)...
+  else if (isTimeoutCommand) ... etc.
+  */
+  if (_isBuiltInCommand(firstWord))
+  {
+    _removeBackgroundSign(const_cast<char *>(cmd_line));
+  }
+  if (firstWord.compare("chprompt") == 0)
+  {
+    return new ChpromptCommand(cmd_line);
+  }
+  else if (firstWord.compare("showpid") == 0)
+  {
+    return new ShowPidCommand(cmd_line);
+  }
+  else if (firstWord.compare("pwd") == 0)
+  {
+    return new GetCurrDirCommand(cmd_line);
+  }
+  else if (firstWord.compare("cd") == 0)
+  {
+    return new ChangeDirCommand(cmd_line);
+  }
+  else if (firstWord.compare("jobs") == 0)
+  {
+    return new JobsCommand(cmd_line);
+  }
+  else if (firstWord.compare("fg") == 0)
+  {
+    return new ForegroundCommand(cmd_line);
+  }
+  else if (firstWord.compare("quit") == 0)
+  {
+    return new QuitCommand(cmd_line);
+  }
+  else if (firstWord.compare("kill") == 0)
+  {
+    return new KillCommand(cmd_line);
+  }
+  else if (firstWord.compare("chmod") == 0)
+  {
+    return new ChmodCommand(cmd_line);
+  }
+  else
+  {
+    return new ExternalCommand(cmd_line);
+  }
 }
 
 SmallShell::~SmallShell()
 {
-  // TODO: add your implementation
+  delete jobs;
 }
 
-std::string SmallShell::getPromptName() const
+void SmallShell::executeCommand(const char *cmd_line)
+{
+  Command *cmd = CreateCommand(cmd_line);
+  cmd->execute();
+}
+
+string SmallShell::getPromptName() const
 {
   return prompt_name;
 }
@@ -685,7 +737,7 @@ bool SmallShell::_isBuiltInCommand(string cmd_name)
   if (copy_cmd.compare("chprompt") == 0 || copy_cmd.compare("showpid") == 0 || copy_cmd.compare("pwd") == 0 ||
       copy_cmd.compare("cd") == 0 || copy_cmd.compare("jobs") == 0 || copy_cmd.compare("fg") == 0 ||
       copy_cmd.compare("quit") == 0 || copy_cmd.compare("kill") == 0)
-  { // TODO: add more built in commands
+  {
     return true;
   }
   else
@@ -694,81 +746,10 @@ bool SmallShell::_isBuiltInCommand(string cmd_name)
   }
 }
 
-/**
- * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
- */
-Command *SmallShell::CreateCommand(const char *cmd_line)
-{                                         // TODO: fix beginning
-  string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
-  string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
-  /*
-  if(isRedirectionCommand) ...
-  else if (isPipeCommand)...
-  else if (isTimeoutCommand) ... etc.
-  */
-  if (_isBuiltInCommand(firstWord))
-  {
-    _removeBackgroundSign(const_cast<char *>(cmd_line));
-  }
-  if (firstWord.compare("chprompt") == 0)
-  {
-    return new ChpromptCommand(cmd_line);
-  }
-  else if (firstWord.compare("showpid") == 0)
-  {
-    return new ShowPidCommand(cmd_line);
-  }
-  else if (firstWord.compare("pwd") == 0)
-  {
-    return new GetCurrDirCommand(cmd_line);
-  }
-  else if (firstWord.compare("cd") == 0)
-  {
-    return new ChangeDirCommand(cmd_line);
-  }
-  else if (firstWord.compare("jobs") == 0)
-  {
-    return new JobsCommand(cmd_line);
-  }
-  else if (firstWord.compare("fg") == 0)
-  {
-    return new ForegroundCommand(cmd_line);
-  }
-  else if (firstWord.compare("quit") == 0)
-  {
-    return new QuitCommand(cmd_line, this->jobs);
-  }
-  else if (firstWord.compare("kill") == 0)
-  {
-    return new KillCommand(cmd_line, this->jobs);
-  }
-  else if (firstWord.compare("chmod") == 0)
-  {
-    return new ChmodCommand(cmd_line);
-  }
-  else
-  {
-    return new ExternalCommand(cmd_line);
-  }
-}
-
-SmallShell::~SmallShell()
-{
-  // TODO: add your implementation
-  delete jobs;
-}
-
-void SmallShell::executeCommand(const char *cmd_line)
-{
-  Command *cmd = CreateCommand(cmd_line);
-  cmd->execute();
-  // Please note that you must fork smash process for some commands (e.g., external commands....)
-}
-
 pid_t SmallShell::getCurrFgPid() const {
   return curr_fg_pid;
 }
 
-void setCurrFgPid(const pid_t new_process_pid) {
-  curr_fg_pid = new_process;
+void SmallShell::setCurrFgPid(const pid_t new_process_pid) {
+  curr_fg_pid = new_process_pid;
 }

@@ -13,14 +13,12 @@ class JobsList;
 class Command {
  protected:
   const char* cmd_line;
-// TODO: Add your data members
  public:
   Command(const char* cmd_line);
   virtual ~Command();
   virtual void execute() = 0;
   //virtual void prepare();
   //virtual void cleanup();
-  // TODO: Add your extra methods if needed
   const char* getCmdLine() const;
 };
 
@@ -54,7 +52,6 @@ class GetCurrDirCommand : public BuiltInCommand {
 };
 
 class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members public:
 public:
   ChangeDirCommand(const char* cmd_line);
   virtual ~ChangeDirCommand() {}
@@ -62,7 +59,6 @@ public:
 };
 
 class JobsCommand : public BuiltInCommand {
- // TODO: Add your data members
  public:
   JobsCommand(const char* cmd_line);
   virtual ~JobsCommand() {}
@@ -70,7 +66,6 @@ class JobsCommand : public BuiltInCommand {
 };
 
 class ForegroundCommand : public BuiltInCommand {
- // TODO: Add your data members
  public:
   ForegroundCommand(const char* cmd_line);
   virtual ~ForegroundCommand() {}
@@ -78,21 +73,15 @@ class ForegroundCommand : public BuiltInCommand {
 };
 
 class QuitCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-private:
-  JobsList* jobs;
 public:
-  QuitCommand(const char* cmd_line, JobsList* jobs);
+  QuitCommand(const char* cmd_line);
   virtual ~QuitCommand() {}
   void execute() override;
 };
 
 class KillCommand : public BuiltInCommand {
-private:
-  JobsList* jobs;
-
 public:
-  KillCommand(const char* cmd_line, JobsList* jobs);
+  KillCommand(const char* cmd_line);
   virtual ~KillCommand() {}
   void execute() override;
 };
@@ -107,7 +96,6 @@ class ExternalCommand : public Command {
 //Special Commands
 
 class RedirectionCommand : public Command {
- // TODO: Add your data members
  public:
   explicit RedirectionCommand(const char* cmd_line);
   virtual ~RedirectionCommand() {}
@@ -117,7 +105,6 @@ class RedirectionCommand : public Command {
 };
 
 class PipeCommand : public Command {
-  // TODO: Add your data members
  public:
   PipeCommand(const char* cmd_line);
   virtual ~PipeCommand() {}
@@ -146,14 +133,13 @@ class JobsList {
       Command* cmd;
       pid_t jobPid;
     public:
-   // TODO: Add your data members
     JobEntry(int job_id, Command* cmd, pid_t job_pid);
     ~JobEntry() {};
     pid_t getJobPid() const;
     void setJobId(int new_job_id);
     int getJobId() const;
     void printJobIdAndPid() const;
-    void printJobPid() const;  // for quitCommand::execute
+    void printJobPid() const;  // for quitCommand
     Command* getCommand() const;
   };
   class CompareJobEntryUsingPid { // needed for sorting jobs list by pid
@@ -161,18 +147,16 @@ class JobsList {
       bool operator()(const JobEntry* job1, const JobEntry* job2) const;
   };
  private:
-  // TODO: Add your data members
   std::vector<JobEntry*> jobs_list;
   int max_job_id;
  public:
   JobsList();
   ~JobsList();
   void addJob(Command* cmd);
-  void printJobsListWithId(); // for jobsCommand::execute
+  void printJobsListWithId(); // for jobsCommand
   void removeFinishedJobs();
   JobEntry * getJobById(int jobId);
   void removeJobById(int jobId);
-  // TODO: Add extra methods or modify exisitng ones as needed
   void removeFinishedJobs();
   void updateMaxJobId();
   std::vector<JobEntry*>* getJobsList() const;
@@ -187,7 +171,6 @@ class JobsList {
 
 class SmallShell {
  private:
-  // TODO: Add your data members
   pid_t shellPid;
   char* last_dir;
   string prompt_name = "smash> ";
@@ -207,17 +190,13 @@ class SmallShell {
   ~SmallShell();
   void executeCommand(const char* cmd_line);
   string getPromptName() const; // for chprompt usage
-  
+  void setShellPid(const pid_t shellPid);
   void setPromptName(const std::string& name);  // for chprompt usage
   pid_t getShellPid() const; // for showpid usage
-
   void setLastDir(const char* new_dir); // for cd usage
   char* getLastDir() const;
-
   JobsList* getJobsList() const; // for jobs and fg usage
-
   bool _isBuiltInCommand(const string cmd_name); // for create command usage
-
   pid_t getCurrFgPid() const;
   void setCurrFgPid(const pid_t new_process_pid);
 };
