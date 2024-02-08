@@ -155,11 +155,11 @@ class JobsList {
   void addJob(Command* cmd);
   void printJobsListWithId(); // for jobsCommand
   void removeFinishedJobs();
-  JobEntry * getJobById(int jobId);
+  JobEntry* getJobById(int jobId);
   void removeJobById(int jobId);
   void removeFinishedJobs();
   void updateMaxJobId();
-  std::vector<JobEntry*>* getJobsList() const;
+  std::vector<JobEntry*> getJobsList() const;
   bool isEmpty() const;
   JobEntry* jobExistsInList(int job_id);
   void removeJob(JobEntry* to_remove);
@@ -174,7 +174,7 @@ class SmallShell {
   pid_t shellPid;
   char* last_dir;
   string prompt_name = "smash> ";
-  JobsList* jobs;
+  JobsList jobs;
   pid_t curr_fg_pid = -1;
   SmallShell();
  public:
