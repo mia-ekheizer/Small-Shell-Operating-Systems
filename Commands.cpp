@@ -575,7 +575,7 @@ void JobsList::setMaxJobId(int new_max_job_id)
   max_job_id = new_max_job_id;
 }
 
-std::vector<JobEntry *> *getJobsList() const
+JobsList* SmallShell::getJobsList() const
 {
   return *jobs_list;
 }
