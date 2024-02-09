@@ -100,7 +100,7 @@ class RedirectionCommand : public Command {
   explicit RedirectionCommand(const char* cmd_line);
   virtual ~RedirectionCommand() {}
   void execute() override;
-  //void prepare() override;
+  //void prepare() override; //<-----TODO: WTF?(was commented out in the original code)
   //void cleanup() override;
 };
 
