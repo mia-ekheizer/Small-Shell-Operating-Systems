@@ -15,7 +15,7 @@ class Command {
   const char* cmd_line;
  public:
   Command(const char* cmd_line);
-  virtual ~Command();
+  virtual ~Command() {}
   virtual void execute() = 0;
   //virtual void prepare();
   //virtual void cleanup();
@@ -157,9 +157,8 @@ class JobsList {
   void removeFinishedJobs();
   JobEntry* getJobById(int jobId);
   void removeJobById(int jobId);
-  void removeFinishedJobs();
   void updateMaxJobId();
-  std::vector<JobEntry*> getJobsList() const;
+  vector<JobEntry*>* getJobsList() const;
   bool isEmpty() const;
   JobEntry* jobExistsInList(int job_id);
   void removeJob(JobEntry* to_remove);
@@ -167,6 +166,7 @@ class JobsList {
   int getSize() const;
   int getMaxJobId() const;
   void setMaxJobId(int new_max_job_id);
+  void killAllJobsInList() const;
 };
 
 class SmallShell {
@@ -174,7 +174,7 @@ class SmallShell {
   pid_t shellPid;
   char* last_dir;
   string prompt_name = "smash> ";
-  JobsList jobs;
+  JobsList* jobs;
   pid_t curr_fg_pid = -1;
   SmallShell();
  public:
@@ -190,13 +190,12 @@ class SmallShell {
   ~SmallShell();
   void executeCommand(const char* cmd_line);
   string getPromptName() const; // for chprompt usage
-  void setShellPid(const pid_t shellPid);
   void setPromptName(const std::string& name);  // for chprompt usage
   pid_t getShellPid() const; // for showpid usage
-  void setLastDir(const char* new_dir); // for cd usage
+  void setLastDir(char* new_dir); // for cd usage
   char* getLastDir() const;
   JobsList* getJobsList() const; // for jobs and fg usage
-  bool _isBuiltInCommand(const string cmd_name); // for create command usage
+  bool _isBuiltInCommand(const char* cmd_name); // for create command usage
   pid_t getCurrFgPid() const;
   void setCurrFgPid(const pid_t new_process_pid);
 };
