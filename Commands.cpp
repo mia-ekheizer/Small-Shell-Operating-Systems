@@ -504,6 +504,10 @@ void RedirectionCommand::execute() {
   }
 }
 
+bool isRedirectionCommand(const char *cmd_line) {
+  std::string command = cmd_line;
+  return (command.find(">") != std::string::npos || command.find(">>") != std::string::npos);
+}
 
 // ChmodCommand methods
 ChmodCommand::ChmodCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {}
@@ -531,6 +535,23 @@ void ChmodCommand::execute() {
     }
   }
   _freeArgs();
+}
+
+bool isChmodCommand(const char *cmd_line) {
+  std::string command = cmd_line;
+  return (command.find("chmod") != std::string::npos);
+}
+
+// PipeCommand methods
+PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line) {}
+
+void PipeCommand::execute() {
+  //TODO: implement
+}
+
+bool isPipeCommand(const char *cmd_line) {
+  std::string command = cmd_line;
+  return (command.find("|") != std::string::npos);
 }
 
 // JobEntry methods
@@ -768,8 +789,8 @@ bool SmallShell::_isBuiltInCommand(string cmd_name)
   string firstWord = copy_cmd.substr(0, copy_cmd.find_first_of(" \n"));
   if (copy_cmd.compare("chprompt") == 0 || copy_cmd.compare("showpid") == 0 || copy_cmd.compare("pwd") == 0 ||
       copy_cmd.compare("cd") == 0 || copy_cmd.compare("jobs") == 0 || copy_cmd.compare("fg") == 0 ||
-      copy_cmd.compare("quit") == 0 || copy_cmd.compare("kill") == 0)
-  { // TODO: add more built in commands
+      copy_cmd.compare("quit") == 0 || copy_cmd.compare("kill") == 0){ 
+        // TODO: add more built in commands
     return true;
   }
   else
@@ -782,55 +803,55 @@ bool SmallShell::_isBuiltInCommand(string cmd_name)
  * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
  */
 Command *SmallShell::CreateCommand(const char *cmd_line)
-{                                         // TODO: fix beginning
+{                                         
   string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
-  string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
-  /*
-  if(isRedirectionCommand) ...
-  else if (isPipeCommand)...
-  else if (isTimeoutCommand) ... etc.
-  */
-  if (_isBuiltInCommand(firstWord))
-  {
-    _removeBackgroundSign(const_cast<char *>(cmd_line));
+  char* noBackgroundSignCommand = cmd_s; // prepare the command for the built in commands
+  _removeBackgroundSign(noBackgroundSignCommand);
+  string firstWord = noBackgroundSignCommand.substr(0, noBackgroundSignCommand.find_first_of(" \n"));
+
+  if(isRedirectionCommand(cmd_line)) {
+    return new RedirectionCommand(cmd_line);
   }
-  if (firstWord.compare("chprompt") == 0)
+  else if(isPipeCommand(cmd_line)) { //TODO: implement isPipeCommand
+    return new PipeCommand(cmd_line);
+  }
+  else if(isChmodCommand(cmd_line)) {
+    return new ChmodCommand(cmd_line);
+  }
+  //if Built-in Commands
+  else if (firstWord.compare("chprompt") == 0)
   {
-    return new ChpromptCommand(cmd_line);
+    return new ChpromptCommand(noBackgroundSignCommand);
   }
   else if (firstWord.compare("showpid") == 0)
   {
-    return new ShowPidCommand(cmd_line);
+    return new ShowPidCommand(noBackgroundSignCommand);
   }
   else if (firstWord.compare("pwd") == 0)
   {
-    return new GetCurrDirCommand(cmd_line);
+    return new GetCurrDirCommand(noBackgroundSignCommand);
   }
   else if (firstWord.compare("cd") == 0)
   {
-    return new ChangeDirCommand(cmd_line);
+    return new ChangeDirCommand(noBackgroundSignCommand);
   }
   else if (firstWord.compare("jobs") == 0)
   {
-    return new JobsCommand(cmd_line);
+    return new JobsCommand(noBackgroundSignCommand);
   }
   else if (firstWord.compare("fg") == 0)
   {
-    return new ForegroundCommand(cmd_line);
+    return new ForegroundCommand(noBackgroundSignCommand);
   }
   else if (firstWord.compare("quit") == 0)
   {
-    return new QuitCommand(cmd_line, this->jobs);
+    return new QuitCommand(noBackgroundSignCommand, this->jobs);
   }
   else if (firstWord.compare("kill") == 0)
   {
-    return new KillCommand(cmd_line, this->jobs);
+    return new KillCommand(noBackgroundSignCommand, this->jobs);
   }
-  else if (firstWord.compare("chmod") == 0)
-  {
-    return new ChmodCommand(cmd_line);
-  }
-  else
+  else // external command - recieves the command line as is.
   {
     return new ExternalCommand(cmd_line);
   }
@@ -845,6 +866,7 @@ SmallShell::~SmallShell()
 void SmallShell::executeCommand(const char *cmd_line)
 {
   Command *cmd = CreateCommand(cmd_line);
+  
   cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
