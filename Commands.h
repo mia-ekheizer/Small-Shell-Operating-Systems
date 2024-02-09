@@ -147,7 +147,7 @@ class JobsList {
       bool operator()(const JobEntry* job1, const JobEntry* job2) const;
   };
  private:
-  std::vector<JobEntry*> jobs_list;
+  std::vector<JobEntry*>* jobs_list;
   int max_job_id;
  public:
   JobsList();
