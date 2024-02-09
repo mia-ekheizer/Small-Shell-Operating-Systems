@@ -173,7 +173,7 @@ class SmallShell {
  private:
   pid_t shellPid;
   char* last_dir;
-  string prompt_name = "smash> ";
+  string prompt_name = "smash";
   JobsList* jobs;
   pid_t curr_fg_pid = -1;
   SmallShell();
@@ -195,7 +195,6 @@ class SmallShell {
   void setLastDir(char* new_dir); // for cd usage
   char* getLastDir() const;
   JobsList* getJobsList() const; // for jobs and fg usage
-  bool _isBuiltInCommand(const char* cmd_name); // for create command usage
   pid_t getCurrFgPid() const;
   void setCurrFgPid(const pid_t new_process_pid);
 };

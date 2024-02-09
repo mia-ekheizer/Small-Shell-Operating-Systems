@@ -100,6 +100,28 @@ bool _isComplexCommand(const char *cmd_line)
           as_string.find_first_of('?') != string::npos);
 }
 
+bool _isBuiltInCommand(const char* cmd_name)
+{
+  char* copy_cmd = (char*)malloc(string(cmd_name).length() + 1);
+  copy_cmd = strcpy(copy_cmd, cmd_name);
+  _removeBackgroundSign(copy_cmd);
+  string cmd(copy_cmd);
+  cmd = _trim(cmd);
+  string firstWord = cmd.substr(0, cmd.find_first_of(" \n"));
+  if (cmd.compare("chprompt") == 0 || cmd.compare("showpid") == 0 || cmd.compare("pwd") == 0 ||
+      cmd.compare("cd") == 0 || cmd.compare("jobs") == 0 || cmd.compare("fg") == 0 ||
+      cmd.compare("quit") == 0 || cmd.compare("kill") == 0)
+  {
+    free(copy_cmd);
+    return true;
+  }
+  else
+  {
+    free(copy_cmd);
+    return false;
+  }
+}
+
 // Command methods
 Command::Command(const char *cmd_line) : cmd_line(cmd_line) {}
 
@@ -121,7 +143,7 @@ void ChpromptCommand::execute()
   SmallShell &smash = SmallShell::getInstance();
   if (num_of_args == 1)
   { 
-    smash.setPromptName(WHITESPACE);
+    smash.setPromptName("smash");
   }
   else
   {
@@ -163,7 +185,7 @@ void ChangeDirCommand::execute()
   SmallShell &smash = SmallShell::getInstance();
   char *args[COMMAND_MAX_ARGS];
   int size_args = _parseCommandLine(cmd_line, args);
-  char* path = nullptr;
+  char path[COMMAND_MAX_PATH_LENGHT];
   char* curr_dir = getcwd(path, COMMAND_MAX_PATH_LENGHT);
   if (!curr_dir)
   {
@@ -344,32 +366,35 @@ ExternalCommand::ExternalCommand(const char *cmd_line) : Command(cmd_line) {}
 void ExternalCommand::execute()
 {
   bool is_background_command = false;
+  char* cmd_line_copy = (char*)malloc(string(cmd_line).length() + 1);
+  cmd_line_copy = strcpy(cmd_line_copy, cmd_line);
   if (_isBackgroundComamnd(cmd_line))
   {
     is_background_command = true;
-    char* cmd_line_copy = nullptr;
-    cmd_line_copy = strcpy(cmd_line_copy, cmd_line);
     _removeBackgroundSign(cmd_line_copy);
   }
-  
   SmallShell& smash = SmallShell::getInstance();
   char *args[COMMAND_MAX_ARGS];
-  int size_args = _parseCommandLine(cmd_line, args);
+  const char* final_cmd = cmd_line_copy;
+  int size_args = _parseCommandLine(cmd_line_copy, args);
   pid_t pid = fork();
   if (pid == -1)
   {
+    free(cmd_line_copy);
     perror("smash error: fork failed");
   }
   else if (pid == 0)
   { // child process executes the command.
     if (setpgrp() == -1)
     {
+      free(cmd_line_copy);
       perror("smash error: setpgrp failed");
     }
-    else if (_isComplexCommand(cmd_line))
+    else if (_isComplexCommand(final_cmd))
     {
-      if (execlp("/bin/bash", "-c", cmd_line) == -1)
+      if (execlp("/bin/bash", "-c", final_cmd) == -1)
       {
+        free(cmd_line_copy);
         perror("smash error: execlp failed");
         exit(1);
       }
@@ -378,6 +403,7 @@ void ExternalCommand::execute()
     {
       if (execvp(args[0], args) == -1)
       {
+        free(cmd_line_copy);
         perror("smash error: execvp failed");
         exit(1);
       }
@@ -394,11 +420,13 @@ void ExternalCommand::execute()
       smash.setCurrFgPid(pid);
       if (waitpid(pid, nullptr, WUNTRACED) == -1)
       {
+        free(cmd_line_copy);
         perror("smash error: waitpid failed");
       }
       smash.setCurrFgPid(-1);
     }
   }
+  free(cmd_line_copy);
   _freeArgs(args, size_args);
 }
 
@@ -627,7 +655,7 @@ void JobsList::killAllJobsInList() const {
 
 // SmallShell methods
 SmallShell::SmallShell() : shellPid(getpid()), last_dir(nullptr), 
-prompt_name("smash> "), jobs(new JobsList()), curr_fg_pid(-1) {}
+prompt_name("smash"), jobs(new JobsList()), curr_fg_pid(-1) {}
 
 /**
  * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
@@ -693,8 +721,19 @@ SmallShell::~SmallShell() {
 
 void SmallShell::executeCommand(const char *cmd_line)
 {
-  Command *cmd = CreateCommand(cmd_line);
-  cmd->execute();
+  if (!cmd_line) {
+    return;
+  }
+  else {
+    Command *cmd = CreateCommand(cmd_line);
+    if (cmd) {
+      cmd->execute();
+    }
+    else {
+      return;
+    }
+    delete cmd;
+  }
 }
 
 string SmallShell::getPromptName() const
@@ -704,11 +743,7 @@ string SmallShell::getPromptName() const
 
 void SmallShell::setPromptName(const string &name)
 {
-  if (name == WHITESPACE)
-  {
-    prompt_name = "smash> ";
-  }
-  prompt_name = _ltrim(name);
+  prompt_name = name;
 }
 
 pid_t SmallShell::getShellPid() const
@@ -724,26 +759,6 @@ void SmallShell::setLastDir(char *new_dir)
 char *SmallShell::getLastDir() const
 {
   return last_dir;
-}
-
-bool SmallShell::_isBuiltInCommand(const char* cmd_name)
-{
-  char* copy_cmd = nullptr;
-  copy_cmd = strcpy(copy_cmd, cmd_name);
-  _removeBackgroundSign(copy_cmd);
-  string cmd(copy_cmd);
-  cmd = _trim(cmd);
-  string firstWord = cmd.substr(0, cmd.find_first_of(" \n"));
-  if (cmd.compare("chprompt") == 0 || cmd.compare("showpid") == 0 || cmd.compare("pwd") == 0 ||
-      cmd.compare("cd") == 0 || cmd.compare("jobs") == 0 || cmd.compare("fg") == 0 ||
-      cmd.compare("quit") == 0 || cmd.compare("kill") == 0)
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
 }
 
 pid_t SmallShell::getCurrFgPid() const {
