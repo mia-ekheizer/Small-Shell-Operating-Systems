@@ -865,10 +865,24 @@ SmallShell::~SmallShell()
 
 void SmallShell::executeCommand(const char *cmd_line)
 {
-  Command *cmd = CreateCommand(cmd_line);
-  
+  //check if there is a command to execute:
+  char *args[COMMAND_MAX_ARGS];
+  int size_args = _parseCommandLine(cmd_line, args);
+  if(size_args == 0) {
+    return;
+  }
+  this->getJobsList()->removeFinishedJobs();
+
+  Command *cmd;
+  try {
+    cmd = CreateCommand(cmd_line);
+  } catch (std::bad_alloc &e) {
+    perror("smash error: bad_alloc");
+    _freeArgs(args, size_args);
+    exit(1);
+  }
   cmd->execute();
-  // Please note that you must fork smash process for some commands (e.g., external commands....)
+  delete cmd;
 }
 
 pid_t SmallShell::getCurrFgPid() const {
