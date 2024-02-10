@@ -8,6 +8,8 @@
 #include "Commands.h"
 #include "sys/stat.h"
 #include <set>
+#include <sys/types.h>
+#include <fcntl.h>
 
 using namespace std;
 
@@ -238,8 +240,8 @@ JobsCommand::JobsCommand(const char *cmd_line) : BuiltInCommand(cmd_line)
 void JobsCommand::execute()
 {
   SmallShell &smash = SmallShell::getInstance();
-  smash->getJobsList()->removeFinishedJobs();
-  smash->getJobsList()->printJobsListWithId();
+  smash.getJobsList()->removeFinishedJobs();
+  smash.getJobsList()->printJobsListWithId();
 }
 
 // ForegroundCommand
@@ -297,8 +299,6 @@ void ForegroundCommand::execute()
 
 // QuitCommand methods
 QuitCommand::QuitCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {}
-
-QuitCommand::~QuitCommand(){}
 
 void QuitCommand::execute()
 {
@@ -450,20 +450,22 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 void RedirectionCommand::execute() {
   SmallShell &smash = SmallShell::getInstance();
   int counter = 0;
-  for(auto c : cmd_line) {
-    if (c == '>') {
+  char* cmd_copy = strcpy(cmd_copy, cmd_line);
+  while (*cmd_copy) {
+    if (*cmd_copy == '>') {
       counter++;
     }
+    cmd_copy++;
   }
-  std::string command;
+  std::string command = cmd_line;
   std::string outfile;
   if(counter == 1) {
-    command = cmd_line.substr(0, cmd_line.find(">"));
-    outfile = cmd_line.substr(cmd_line.find(">") + 1, cmd_line.length());
+    command.substr(0, command.find(">"));
+    outfile = command.substr(command.find(">") + 1, command.length());
   }
   else if(counter == 2) {
-    command = cmd_line.substr(0, cmd_line.find(">>"));
-    outfile = cmd_line.substr(cmd_line.find(">>") + 1, cmd_line.length());
+    command = command.substr(0, command.find(">>"));
+    outfile = command.substr(command.find(">>") + 1, command.length());
   }
   else {
     std::cerr << "smash error: redirection: invalid arguments" << std::endl;
@@ -558,11 +560,6 @@ void ChmodCommand::execute() {
   _freeArgs(args, size_args);
 }
 
-bool isChmodCommand(const char *cmd_line) {
-  std::string command = cmd_line;
-  return (command.find("chmod") != std::string::npos);
-}
-
 // PipeCommand methods
 PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line) {}
 
@@ -578,18 +575,6 @@ bool isPipeCommand(const char *cmd_line) {
 bool isChmodCommand(const char *cmd_line) {
   std::string command = cmd_line;
   return (command.find("chmod") != std::string::npos);
-}
-
-// PipeCommand methods
-PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line) {}
-
-void PipeCommand::execute() {
-  //TODO: implement
-}
-
-bool isPipeCommand(const char *cmd_line) {
-  std::string command = cmd_line;
-  return (command.find("|") != std::string::npos);
 }
 
 // JobEntry methods
@@ -605,7 +590,7 @@ void JobsList::JobEntry::setJobId(int new_job_id)
   jobId = new_job_id;
 }
 
-int JobsList::JobEntry::getJobId()
+int JobsList::JobEntry::getJobId() const
 {
   return jobId;
 }
@@ -635,9 +620,9 @@ JobsList::JobsList() : jobs_list(new std::vector<JobEntry *>), max_job_id(0) {}
 
 JobsList::~JobsList()
 {
-  for (auto job_entry : jobs_list)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   {
-    delete job_entry;
+    delete *it;
   }
   delete jobs_list;
 }
@@ -647,27 +632,28 @@ void JobsList::addJob(Command *cmd)
   removeFinishedJobs();
   max_job_id++;
   JobEntry* new_job = new JobEntry(max_job_id, cmd, getpid());
-  jobs_list.push_back(new_job);
+  jobs_list->push_back(new_job);
 }
 
 void JobsList::printJobsListWithId()
 { // for jobs command usage
   removeFinishedJobs();
-  for (auto job_entry : jobs_list)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   {
-    std::cout << "[" << job_entry->getJobId() << "] " << job_entry->getCommand()->getCmdLine() << std::endl;
+    JobsList::JobEntry* curr_job = *it;
+    std::cout << "[" << curr_job->getJobId() << "] " << curr_job->getCommand()->getCmdLine() << std::endl;
   }
 }
 
 void JobsList::removeFinishedJobs()
 {
-  for (vector<JobsList::JobEntry*>::iterator it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   {
     JobEntry* tmp = *it;
     if (kill(tmp->getJobPid(), 0) == -1) // job finished
     {
       delete tmp;
-      it = jobs_list.erase(it);
+      it = jobs_list->erase(it);
     }
     else
     { // job not finished
@@ -679,7 +665,7 @@ void JobsList::removeFinishedJobs()
 
 JobsList::JobEntry* JobsList::getJobById(int jobId)
 {
-  for (vector<JobsList::JobEntry*>::iterator it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   {
     JobsList::JobEntry* curr_job = *it;
     if (jobId == curr_job->getJobId())
@@ -692,13 +678,13 @@ JobsList::JobEntry* JobsList::getJobById(int jobId)
 
 void JobsList::removeJobById(int jobId)
 {
-  for (vector<JobsList::JobEntry*>::iterator it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   {
     JobsList::JobEntry* curr_job = *it;
     if (jobId == curr_job->getJobId())
     {
       delete curr_job->getCommand();
-      jobs_list.erase(it);
+      jobs_list->erase(it);
     }
   }
   updateMaxJobId();
@@ -706,19 +692,19 @@ void JobsList::removeJobById(int jobId)
 
 void JobsList::updateMaxJobId()
 {
-  if (jobs_list.empty())
+  if (isEmpty())
   {
     setMaxJobId(0);
   }
   else
   {
-    setMaxJobId(jobs_list.back()->getJobId());
+    setMaxJobId(jobs_list->back()->getJobId());
   }
 }
 
 int JobsList::getSize() const
 {
-  return jobs_list.size();
+  return jobs_list->size();
 }
 
 int JobsList::getMaxJobId() const
@@ -738,12 +724,12 @@ JobsList* SmallShell::getJobsList() const
 
 bool JobsList::isEmpty() const
 {
-  return jobs_list.empty();
+  return jobs_list->empty();
 }
 
 JobsList::JobEntry *JobsList::jobExistsInList(int job_id)
 {
-  for (vector<JobsList::JobEntry*>::iterator it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   {
     JobsList::JobEntry* curr_job = *it;
     if (job_id == curr_job->getJobId() && waitpid(curr_job->getJobPid(), nullptr, WNOHANG) != -1)
@@ -756,27 +742,28 @@ JobsList::JobEntry *JobsList::jobExistsInList(int job_id)
 
 void JobsList::removeJob(JobsList::JobEntry *to_remove)
 {
-  for (vector<JobsList::JobEntry*>::iterator it = jobs_list.begin(); it != jobs_list.end(); it++)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   {
     JobsList::JobEntry* curr_job = *it;
     if (to_remove->getJobId() == curr_job->getJobId())
     {
       delete to_remove->getCommand();
-      jobs_list.erase(it);
+      jobs_list->erase(it);
     }
   }
 }
 
 JobsList::JobEntry *JobsList::getLastJob()
 {
-  return jobs_list.back();
+  return jobs_list->back();
 }
 
 void JobsList::killAllJobsInList() const {
   set<JobsList::JobEntry*, JobsList::CompareJobEntryUsingPid> jobsByPid; // new set, with a functor <
-  for (JobsList::JobEntry* job : jobs_list)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   { // fill the new set in an ordered way
-    jobsByPid.insert(job);
+    JobsList::JobEntry* curr_job = *it;
+    jobsByPid.insert(curr_job);
   }
   for (JobsList::JobEntry* job : jobsByPid)
     {
@@ -821,12 +808,7 @@ char *SmallShell::getLastDir() const
   return last_dir;
 }
 
-JobsList *SmallShell::getJobsList() const
-{
-  return jobs_list;
-}
-
-bool SmallShell::_isBuiltInCommand(string cmd_name)
+bool _isBuiltInCommand(string cmd_name)
 {
   string copy_cmd = cmd_name;
   _removeBackgroundSign(copy_cmd);
@@ -850,7 +832,7 @@ bool SmallShell::_isBuiltInCommand(string cmd_name)
 Command *SmallShell::CreateCommand(const char *cmd_line)
 {                                         
   string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
-  char* noBackgroundSignCommand = cmd_s; // prepare the command for the built in commands
+  char* noBackgroundSignCommand = strcpy(noBackgroundSignCommand, cmd_s.c_str()); // prepare the command for the built in commands
   _removeBackgroundSign(noBackgroundSignCommand);
   string firstWord = noBackgroundSignCommand.substr(0, noBackgroundSignCommand.find_first_of(" \n"));
 
