@@ -105,7 +105,7 @@ bool _isComplexCommand(const char *cmd_line)
 bool _isBuiltInCommand(const char* cmd_name)
 {
   char* copy_cmd = (char*)malloc(string(cmd_name).length() + 1);
-  copy_cmd = strcpy(copy_cmd, cmd_name);
+  strcpy(copy_cmd, cmd_name);
   _removeBackgroundSign(copy_cmd);
   string cmd(copy_cmd);
   cmd = _trim(cmd);
@@ -377,7 +377,7 @@ void ExternalCommand::execute()
 {
   bool is_background_command = false;
   char* cmd_line_copy = (char*)malloc(string(cmd_line).length() + 1);
-  cmd_line_copy = strcpy(cmd_line_copy, cmd_line);
+  strcpy(cmd_line_copy, cmd_line);
   if (_isBackgroundComamnd(cmd_line))
   {
     is_background_command = true;
@@ -450,13 +450,15 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 void RedirectionCommand::execute() {
   SmallShell &smash = SmallShell::getInstance();
   int counter = 0;
-  char* cmd_copy = strcpy(cmd_copy, cmd_line);
+  char* cmd_copy = (char*)malloc(string(cmd_line).length() + 1);
+  strcpy(cmd_copy, cmd_line);
   while (*cmd_copy) {
     if (*cmd_copy == '>') {
       counter++;
     }
     cmd_copy++;
   }
+  free(cmd_copy);
   std::string command = cmd_line;
   std::string outfile;
   if(counter == 1) {
@@ -808,33 +810,18 @@ char *SmallShell::getLastDir() const
   return last_dir;
 }
 
-bool _isBuiltInCommand(string cmd_name)
-{
-  string copy_cmd = cmd_name;
-  _removeBackgroundSign(copy_cmd);
-  copy_cmd = _trim(copy_cmd);
-  string firstWord = copy_cmd.substr(0, copy_cmd.find_first_of(" \n"));
-  if (copy_cmd.compare("chprompt") == 0 || copy_cmd.compare("showpid") == 0 || copy_cmd.compare("pwd") == 0 ||
-      copy_cmd.compare("cd") == 0 || copy_cmd.compare("jobs") == 0 || copy_cmd.compare("fg") == 0 ||
-      copy_cmd.compare("quit") == 0 || copy_cmd.compare("kill") == 0){ 
-        // TODO: add more built in commands
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-}
-
 /**
  * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
  */
 Command *SmallShell::CreateCommand(const char *cmd_line)
 {                                         
   string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
-  char* noBackgroundSignCommand = strcpy(noBackgroundSignCommand, cmd_s.c_str()); // prepare the command for the built in commands
+  char* noBackgroundSignCommand = (char*)malloc(string(cmd_line).length() + 1);;
+  strcpy(noBackgroundSignCommand, cmd_s.c_str()); // prepare the command for the built in commands
   _removeBackgroundSign(noBackgroundSignCommand);
-  string firstWord = noBackgroundSignCommand.substr(0, noBackgroundSignCommand.find_first_of(" \n"));
+  const char* noBackSignCmd = noBackgroundSignCommand;
+  free(noBackgroundSignCommand);
+  string firstWord = string(noBackSignCmd).substr(0, string(noBackSignCmd).find_first_of(" \n"));
 
   if(isRedirectionCommand(cmd_line)) {
     return new RedirectionCommand(cmd_line);
@@ -848,35 +835,35 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   //if Built-in Commands
   else if (firstWord.compare("chprompt") == 0)
   { // need to accept spaces as the new prompt.
-    return new ChpromptCommand(noBackgroundSignCommand);
+    return new ChpromptCommand(noBackSignCmd);
   }
   else if (firstWord.compare("showpid") == 0)
   {
-    return new ShowPidCommand(noBackgroundSignCommand);
+    return new ShowPidCommand(noBackSignCmd);
   }
   else if (firstWord.compare("pwd") == 0)
   {
-    return new GetCurrDirCommand(noBackgroundSignCommand);
+    return new GetCurrDirCommand(noBackSignCmd);
   }
   else if (firstWord.compare("cd") == 0)
   {
-    return new ChangeDirCommand(noBackgroundSignCommand);
+    return new ChangeDirCommand(noBackSignCmd);
   }
   else if (firstWord.compare("jobs") == 0)
   {
-    return new JobsCommand(noBackgroundSignCommand);
+    return new JobsCommand(noBackSignCmd);
   }
   else if (firstWord.compare("fg") == 0)
   {
-    return new ForegroundCommand(noBackgroundSignCommand);
+    return new ForegroundCommand(noBackSignCmd);
   }
   else if (firstWord.compare("quit") == 0)
   {
-    return new QuitCommand(noBackgroundSignCommand);
+    return new QuitCommand(noBackSignCmd);
   }
   else if (firstWord.compare("kill") == 0)
   {
-    return new KillCommand(noBackgroundSignCommand);
+    return new KillCommand(noBackSignCmd);
   }
   else // external command - recieves the command line as is.
   {
@@ -911,6 +898,6 @@ pid_t SmallShell::getCurrFgPid() const {
   return curr_fg_pid;
 }
 
-void setCurrFgPid(const pid_t new_process_pid) {
-  curr_fg_pid = new_process;
+void SmallShell::setCurrFgPid(const pid_t new_process_pid) {
+  curr_fg_pid = new_process_pid;
 }
