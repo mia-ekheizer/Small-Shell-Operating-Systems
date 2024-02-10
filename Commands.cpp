@@ -60,6 +60,22 @@ int _parseCommandLine(const char *cmd_line, char **args)
   FUNC_EXIT()
 }
 
+int _parseChpromptCommandLine(const char *cmd_line, char **args) {
+  FUNC_ENTRY()
+  int i = 0;
+  std::istringstream iss(cmd_line);
+  for (std::string s; iss >> s;)
+  {
+    args[i] = (char *)malloc(s.length() + 1);
+    memset(args[i], 0, s.length() + 1);
+    strcpy(args[i], s.c_str());
+    args[++i] = NULL;
+  }
+  return i;
+
+  FUNC_EXIT()
+}
+
 void _freeArgs(char **args, int size)
 {
   for (int i = 0; i < size; i++)
@@ -141,7 +157,7 @@ ChpromptCommand::ChpromptCommand(const char *cmd_line) : BuiltInCommand(cmd_line
 void ChpromptCommand::execute()
 {
   char *args[COMMAND_MAX_ARGS];
-  int num_of_args = _parseCommandLine(cmd_line, args);
+  int num_of_args = _parseChpromptCommandLine(cmd_line, args);
   SmallShell &smash = SmallShell::getInstance();
   if (num_of_args == 1)
   { 
@@ -149,7 +165,7 @@ void ChpromptCommand::execute()
   }
   else
   {
-    smash.setPromptName(args[0]);
+    smash.setPromptName(args[1]);
   }
   _freeArgs(args, num_of_args);
 }
@@ -814,15 +830,18 @@ char *SmallShell::getLastDir() const
  * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
  */
 Command *SmallShell::CreateCommand(const char *cmd_line)
-{                                         
-  string cmd_s = _trim(string(cmd_line)); // get rid of useless spaces
-  char* noBackgroundSignCommand = (char*)malloc(string(cmd_line).length() + 1);;
-  strcpy(noBackgroundSignCommand, cmd_s.c_str()); // prepare the command for the built in commands
+{
+  char noBackgroundSignCommand[COMMAND_ARGS_MAX_LENGTH];                                       
+  strcpy(noBackgroundSignCommand, cmd_line); // prepare the command for the built in commands
   _removeBackgroundSign(noBackgroundSignCommand);
   const char* noBackSignCmd = noBackgroundSignCommand;
-  free(noBackgroundSignCommand);
   string firstWord = string(noBackSignCmd).substr(0, string(noBackSignCmd).find_first_of(" \n"));
-
+  // need to accept spaces as the new prompt.
+  if (firstWord.compare("chprompt") == 0)
+  {
+    return new ChpromptCommand(noBackSignCmd);
+  }
+  string cmd_final = _trim(string(noBackSignCmd)); // get rid of useless spaces
   if(isRedirectionCommand(cmd_line)) {
     return new RedirectionCommand(cmd_line);
   }
@@ -833,37 +852,33 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
     return new ChmodCommand(cmd_line);
   }
   //if Built-in Commands
-  else if (firstWord.compare("chprompt") == 0)
-  { // need to accept spaces as the new prompt.
-    return new ChpromptCommand(noBackSignCmd);
-  }
   else if (firstWord.compare("showpid") == 0)
   {
-    return new ShowPidCommand(noBackSignCmd);
+    return new ShowPidCommand(cmd_final.c_str());
   }
   else if (firstWord.compare("pwd") == 0)
   {
-    return new GetCurrDirCommand(noBackSignCmd);
+    return new GetCurrDirCommand(cmd_final.c_str());
   }
   else if (firstWord.compare("cd") == 0)
   {
-    return new ChangeDirCommand(noBackSignCmd);
+    return new ChangeDirCommand(cmd_final.c_str());
   }
   else if (firstWord.compare("jobs") == 0)
   {
-    return new JobsCommand(noBackSignCmd);
+    return new JobsCommand(cmd_final.c_str());
   }
   else if (firstWord.compare("fg") == 0)
   {
-    return new ForegroundCommand(noBackSignCmd);
+    return new ForegroundCommand(cmd_final.c_str());
   }
   else if (firstWord.compare("quit") == 0)
   {
-    return new QuitCommand(noBackSignCmd);
+    return new QuitCommand(cmd_final.c_str());
   }
   else if (firstWord.compare("kill") == 0)
   {
-    return new KillCommand(noBackSignCmd);
+    return new KillCommand(cmd_final.c_str());
   }
   else // external command - recieves the command line as is.
   {
