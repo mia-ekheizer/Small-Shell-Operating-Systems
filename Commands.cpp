@@ -13,7 +13,7 @@
 
 using namespace std;
 
-const std::string WHITESPACE = " \t\n\r\f\v";
+const std::string WHITESPACE = " \n\r\t\f\v";
 
 #if 0
 #define FUNC_ENTRY() \
@@ -48,22 +48,6 @@ int _parseCommandLine(const char *cmd_line, char **args)
   FUNC_ENTRY()
   int i = 0;
   std::istringstream iss(_trim(string(cmd_line)).c_str());
-  for (std::string s; iss >> s;)
-  {
-    args[i] = (char *)malloc(s.length() + 1);
-    memset(args[i], 0, s.length() + 1);
-    strcpy(args[i], s.c_str());
-    args[++i] = NULL;
-  }
-  return i;
-
-  FUNC_EXIT()
-}
-
-int _parseChpromptCommandLine(const char *cmd_line, char **args) {
-  FUNC_ENTRY()
-  int i = 0;
-  std::istringstream iss(cmd_line);
   for (std::string s; iss >> s;)
   {
     args[i] = (char *)malloc(s.length() + 1);
@@ -157,7 +141,7 @@ ChpromptCommand::ChpromptCommand(const char *cmd_line) : BuiltInCommand(cmd_line
 void ChpromptCommand::execute()
 {
   char *args[COMMAND_MAX_ARGS];
-  int num_of_args = _parseChpromptCommandLine(cmd_line, args);
+  int num_of_args = _parseCommandLine(cmd_line, args);
   SmallShell &smash = SmallShell::getInstance();
   if (num_of_args == 1)
   { 
@@ -392,7 +376,7 @@ ExternalCommand::ExternalCommand(const char *cmd_line) : Command(cmd_line) {}
 void ExternalCommand::execute()
 {
   bool is_background_command = false;
-  char* cmd_line_copy = (char*)malloc(string(cmd_line).length() + 1);
+  char cmd_line_copy[COMMAND_ARGS_MAX_LENGTH];
   strcpy(cmd_line_copy, cmd_line);
   if (_isBackgroundComamnd(cmd_line))
   {
@@ -406,7 +390,6 @@ void ExternalCommand::execute()
   pid_t pid = fork();
   if (pid == -1)
   {
-    free(cmd_line_copy);
     perror("smash error: fork failed");
     exit(1);
   }
@@ -414,7 +397,6 @@ void ExternalCommand::execute()
   { // child process executes the command.
     if (setpgrp() == -1)
     {
-      free(cmd_line_copy);
       perror("smash error: setpgrp failed");
       exit(1);
     }
@@ -422,7 +404,6 @@ void ExternalCommand::execute()
     {
       if (execlp("/bin/bash", "-c", final_cmd) == -1)
       {
-        free(cmd_line_copy);
         perror("smash error: execlp failed");
         exit(1);
       }
@@ -431,7 +412,6 @@ void ExternalCommand::execute()
     {
       if (execvp(args[0], args) == -1)
       {
-        free(cmd_line_copy);
         perror("smash error: execvp failed");
         exit(1);
       }
@@ -441,21 +421,19 @@ void ExternalCommand::execute()
   { // parent process.
     if (is_background_command)
     { // adds the command to the jobs list if it is a background command, no waiting.
-      smash.getJobsList()->addJob(this);
+      smash.getJobsList()->addJob(this, pid);
     }
     else
     { // if it is a foreground command, the parent waits for the child to finish.
       smash.setCurrFgPid(pid);
       if (waitpid(pid, nullptr, WUNTRACED) == -1)
       {
-        free(cmd_line_copy);
         perror("smash error: waitpid failed");
         exit(1);
       }
       smash.setCurrFgPid(-1);
     }
   }
-  free(cmd_line_copy);
   _freeArgs(args, size_args);
 }
 
@@ -645,11 +623,11 @@ JobsList::~JobsList()
   delete jobs_list;
 }
 
-void JobsList::addJob(Command *cmd)
+void JobsList::addJob(Command *cmd, pid_t pid)
 {
   removeFinishedJobs();
   max_job_id++;
-  JobEntry* new_job = new JobEntry(max_job_id, cmd, getpid());
+  JobEntry* new_job = new JobEntry(max_job_id, cmd, pid);
   jobs_list->push_back(new_job);
 }
 
@@ -665,6 +643,9 @@ void JobsList::printJobsListWithId()
 
 void JobsList::removeFinishedJobs()
 {
+  if (isEmpty()) {
+    return;
+  }
   for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   {
     JobEntry* tmp = *it;
@@ -831,17 +812,11 @@ char *SmallShell::getLastDir() const
  */
 Command *SmallShell::CreateCommand(const char *cmd_line)
 {
-  char noBackgroundSignCommand[COMMAND_ARGS_MAX_LENGTH];                                       
-  strcpy(noBackgroundSignCommand, cmd_line); // prepare the command for the built in commands
-  _removeBackgroundSign(noBackgroundSignCommand);
-  const char* noBackSignCmd = noBackgroundSignCommand;
+  char tmp[COMMAND_ARGS_MAX_LENGTH];
+  strcpy(tmp, cmd_line); // prepare the command for the built in commands
+  _removeBackgroundSign(tmp);
+  const char* noBackSignCmd = tmp;
   string firstWord = string(noBackSignCmd).substr(0, string(noBackSignCmd).find_first_of(" \n"));
-  // need to accept spaces as the new prompt.
-  if (firstWord.compare("chprompt") == 0)
-  {
-    return new ChpromptCommand(noBackSignCmd);
-  }
-  string cmd_final = _trim(string(noBackSignCmd)); // get rid of useless spaces
   if(isRedirectionCommand(cmd_line)) {
     return new RedirectionCommand(cmd_line);
   }
@@ -852,33 +827,37 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
     return new ChmodCommand(cmd_line);
   }
   //if Built-in Commands
+  else if (firstWord.compare("chprompt") == 0)
+  {
+    return new ChpromptCommand(noBackSignCmd);
+  }
   else if (firstWord.compare("showpid") == 0)
   {
-    return new ShowPidCommand(cmd_final.c_str());
+    return new ShowPidCommand(noBackSignCmd);
   }
   else if (firstWord.compare("pwd") == 0)
   {
-    return new GetCurrDirCommand(cmd_final.c_str());
+    return new GetCurrDirCommand(noBackSignCmd);
   }
   else if (firstWord.compare("cd") == 0)
   {
-    return new ChangeDirCommand(cmd_final.c_str());
+    return new ChangeDirCommand(noBackSignCmd);
   }
   else if (firstWord.compare("jobs") == 0)
   {
-    return new JobsCommand(cmd_final.c_str());
+    return new JobsCommand(noBackSignCmd);
   }
   else if (firstWord.compare("fg") == 0)
   {
-    return new ForegroundCommand(cmd_final.c_str());
+    return new ForegroundCommand(noBackSignCmd);
   }
   else if (firstWord.compare("quit") == 0)
   {
-    return new QuitCommand(cmd_final.c_str());
+    return new QuitCommand(noBackSignCmd);
   }
   else if (firstWord.compare("kill") == 0)
   {
-    return new KillCommand(cmd_final.c_str());
+    return new KillCommand(noBackSignCmd);
   }
   else // external command - recieves the command line as is.
   {

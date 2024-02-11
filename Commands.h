@@ -152,7 +152,7 @@ class JobsList {
  public:
   JobsList();
   ~JobsList();
-  void addJob(Command* cmd);
+  void addJob(Command* cmd, pid_t pid);
   void printJobsListWithId(); // for jobsCommand
   void removeFinishedJobs();
   JobEntry* getJobById(int jobId);
