@@ -646,7 +646,7 @@ void JobsList::removeFinishedJobs()
   if (isEmpty()) {
     return;
   }
-  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
+  for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end();)
   {
     JobEntry* tmp = *it;
     if (kill(tmp->getJobPid(), 0) == -1) // job finished
