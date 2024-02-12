@@ -104,7 +104,7 @@ bool _isComplexCommand(const char *cmd_line)
 
 bool _isBuiltInCommand(const char* cmd_name)
 {
-  char* copy_cmd = (char*)malloc(string(cmd_name).length() + 1);
+  char copy_cmd[COMMAND_ARGS_MAX_LENGTH];
   strcpy(copy_cmd, cmd_name);
   _removeBackgroundSign(copy_cmd);
   string cmd(copy_cmd);
@@ -114,12 +114,10 @@ bool _isBuiltInCommand(const char* cmd_name)
       cmd.compare("cd") == 0 || cmd.compare("jobs") == 0 || cmd.compare("fg") == 0 ||
       cmd.compare("quit") == 0 || cmd.compare("kill") == 0)
   {
-    free(copy_cmd);
     return true;
   }
   else
   {
-    free(copy_cmd);
     return false;
   }
 }
@@ -240,7 +238,6 @@ JobsCommand::JobsCommand(const char *cmd_line) : BuiltInCommand(cmd_line)
 void JobsCommand::execute()
 {
   SmallShell &smash = SmallShell::getInstance();
-  smash.getJobsList()->removeFinishedJobs();
   smash.getJobsList()->printJobsListWithId();
 }
 
@@ -308,6 +305,7 @@ void QuitCommand::execute()
   int size_args = _parseCommandLine(cmd_line, args);
   if (size_args > 1 && (strcmp(args[1], "kill") == 0))
   {
+    smash.getJobsList()->removeFinishedJobs();
     std::cout << "smash: sending SIGKILL signal to " << jobs->getSize() << " jobs:" << std::endl;
     jobs->killAllJobsInList();
   }
@@ -444,7 +442,7 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line)
 void RedirectionCommand::execute() {
   SmallShell &smash = SmallShell::getInstance();
   int counter = 0;
-  char* cmd_copy = (char*)malloc(string(cmd_line).length() + 1);
+  char cmd_copy[COMMAND_ARGS_MAX_LENGTH];
   strcpy(cmd_copy, cmd_line);
   while (*cmd_copy) {
     if (*cmd_copy == '>') {
@@ -568,11 +566,6 @@ bool isPipeCommand(const char *cmd_line) {
   return (command.find("|") != std::string::npos);
 }
 
-bool isChmodCommand(const char *cmd_line) {
-  std::string command = cmd_line;
-  return (command.find("chmod") != std::string::npos);
-}
-
 // JobEntry methods
 JobsList::JobEntry::JobEntry(int job_id, Command *cmd, pid_t job_pid) : jobId(job_id), cmd(cmd), jobPid(job_pid) {}
 
@@ -649,7 +642,7 @@ void JobsList::removeFinishedJobs()
   for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end();)
   {
     JobEntry* tmp = *it;
-    if (kill(tmp->getJobPid(), 0) == -1) // job finished
+    if (waitpid(tmp->getJobPid(), nullptr, WNOHANG) == tmp->getJobPid()) // job finished
     {
       delete tmp;
       it = jobs_list->erase(it);
@@ -823,7 +816,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   else if(isPipeCommand(cmd_line)) { //TODO: implement isPipeCommand
     return new PipeCommand(cmd_line);
   }
-  else if(isChmodCommand(cmd_line)) {
+  else if(firstWord.compare("chmod") == 0) {
     return new ChmodCommand(cmd_line);
   }
   //if Built-in Commands
