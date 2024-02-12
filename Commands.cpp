@@ -116,8 +116,7 @@ bool _isBuiltInCommand(const char* cmd_line)
 }
 
 // Command methods
-Command::Command(const char *cmd_line) : cmd_line(string(cmd_line)) {}
-
+Command::Command(const char *cmd_line) : cmd_line(cmd_line) {}
 
 // BuiltInCommand methods
 BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {}
@@ -156,20 +155,18 @@ GetCurrDirCommand::GetCurrDirCommand(const char *cmd_line) : BuiltInCommand(cmd_
 void GetCurrDirCommand::execute()
 {
   char arr[COMMAND_MAX_PATH_LENGHT];
-  if (getcwd(arr, COMMAND_MAX_PATH_LENGHT) != nullptr)
+  if (getcwd(arr, COMMAND_MAX_PATH_LENGHT) != NULL)
   {
     std::cout << arr << std::endl;
   }
   else
   {
-    perror("smash error: getcwd failed"); //TODO:add exit()?
+    perror("smash error: getcwd failed");
   }
 }
 
 // ChangeDirCommand methods
-ChangeDirCommand::ChangeDirCommand(const char *cmd_line) : BuiltInCommand(cmd_line)
-{
-}
+ChangeDirCommand::ChangeDirCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {}
 
 void ChangeDirCommand::execute()
 {
@@ -186,20 +183,18 @@ void ChangeDirCommand::execute()
     _freeArgs(args,size_args);
     return;
   }
-  else
-  { // if size_args == 2
+  else if (size_args == 2)
+  {
+    string curr_dir = path;
     if (!strcmp(args[1], "-")){ // if cd -
       if(smash.getLastDir() == "") { // if last directory not set
         std::cerr << "smash error: cd: OLDPWD not set" << std::endl;
       }
       else { //if there is a last directory
-
         if (!getcwd(path, COMMAND_MAX_PATH_LENGHT)){
           perror("smash error: getcwd failed");
         }
-        string curr_dir = path;
-      
-        if (chdir(smash.getLastDir().c_str()) == -1){
+        else if (chdir(smash.getLastDir().c_str()) == -1){
           perror("smash error: chdir failed");
         }
         else{
@@ -209,12 +204,10 @@ void ChangeDirCommand::execute()
     }
     else
     { // not "cd -"
-
       if (!getcwd(path, COMMAND_MAX_PATH_LENGHT)){
         perror("smash error: getcwd failed");
       }
-      string curr_dir = path;
-      if (chdir(args[1]) == -1)
+      else if (chdir(args[1]) == -1)
       {
         perror("smash error: chdir failed");
       }
@@ -235,7 +228,6 @@ JobsCommand::JobsCommand(const char *cmd_line) : BuiltInCommand(cmd_line)
 void JobsCommand::execute()
 {
   SmallShell &smash = SmallShell::getInstance();
-  smash.getJobsList()->removeFinishedJobs(); //TODO: is needed?
   smash.getJobsList()->printJobsListWithId();
 }
 
@@ -382,7 +374,7 @@ void ExternalCommand::execute()
   }
   SmallShell& smash = SmallShell::getInstance();
   char *args[COMMAND_MAX_ARGS];
-  const char* final_cmd = cmd_line_copy; 
+  const char* final_cmd = cmd_line_copy;
   int size_args = _parseCommandLine(cmd_line_copy, args);
 
   //TODO: ifPipe?
@@ -397,12 +389,11 @@ void ExternalCommand::execute()
     if (setpgrp() == -1)
     {
       perror("smash error: setpgrp failed");
-      return;
-      //exit(1);//TODO: is needed?
+      exit(1);
     }
     else if (is_complex_command)
     {
-      if (execlp("/bin/bash", "-c", final_cmd) == -1)// TODO: explain
+      if (execlp("/bin/bash", "-c", final_cmd) == -1)
       {
         perror("smash error: execlp failed");
         exit(1);
@@ -426,7 +417,8 @@ void ExternalCommand::execute()
     else
     { // if it is a foreground command, the parent waits for the child to finish.
       smash.setCurrFgPid(pid);
-      if (waitpid(pid, nullptr, WUNTRACED) == -1){
+      if (waitpid(pid, nullptr, WUNTRACED) == -1)
+      {
         perror("smash error: waitpid failed");
         //exit(1); //TODO: is needed?
       }
@@ -561,11 +553,6 @@ bool isPipeCommand(const string &cmd_line) {
   return (cmd_line.find_first_of("|") != std::string::npos);
 }
 
-bool isChmodCommand(const char *cmd_line) {
-  std::string command = cmd_line;
-  return (command.find("chmod") != std::string::npos);
-}
-
 // JobEntry methods
 JobsList::JobEntry::JobEntry(int job_id, std::string cmd_line, pid_t job_pid) : jobId(job_id), cmd_line(cmd_line), jobPid(job_pid) {}
 
@@ -612,7 +599,7 @@ JobsList::~JobsList()
   delete jobs_list;
 }
 
-void JobsList::addJob(std::string cmd_line, pid_t pid)
+void JobsList::addJob(string cmd_line, pid_t pid)
 {
   removeFinishedJobs();
   max_job_id++;
@@ -788,7 +775,7 @@ pid_t SmallShell::getShellPid() const
   return this->shellPid;
 }
 
-void SmallShell::setLastDir(const std::string &new_dir)
+void SmallShell::setLastDir(const string &new_dir)
 {
   last_dir = new_dir;
 }
@@ -808,47 +795,47 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   _removeBackgroundSign(tmp);
   std::string trimmed_cmd = _trim(string(tmp)); 
   string firstWord = trimmed_cmd.substr(0, trimmed_cmd.find_first_of(" \n"));
-  if(isRedirectionCommand(tmp)) {
-    return new RedirectionCommand(tmp);
+  if(isRedirectionCommand(trimmed_cmd)) {
+    return new RedirectionCommand(trimmed_cmd);
   }
-  else if(isPipeCommand(tmp)) { //TODO: implement isPipeCommand
-    return new PipeCommand(tmp);
+  else if(isPipeCommand(trimmed_cmd)) { //TODO: implement isPipeCommand
+    return new PipeCommand(trimmed_cmd);
   }
-  else if(isChmodCommand(tmp)) {
-    return new ChmodCommand(tmp);
+  else if(firstWord.compare("chmod") == 0) {
+    return new ChmodCommand(cmd_line);
   }
   //if Built-in Commands
   else if (firstWord.compare("chprompt") == 0)
   {
-    return new ChpromptCommand(tmp);
+    return new ChpromptCommand(trimmed_cmd);
   }
   else if (firstWord.compare("showpid") == 0)
   {
-    return new ShowPidCommand(tmp);
+    return new ShowPidCommand(trimmed_cmd);
   }
   else if (firstWord.compare("pwd") == 0)
   {
-    return new GetCurrDirCommand(tmp);
+    return new GetCurrDirCommand(trimmed_cmd);
   }
   else if (firstWord.compare("cd") == 0)
   {
-    return new ChangeDirCommand(tmp);
+    return new ChangeDirCommand(trimmed_cmd);
   }
   else if (firstWord.compare("jobs") == 0)
   {
-    return new JobsCommand(tmp);
+    return new JobsCommand(trimmed_cmd);
   }
   else if (firstWord.compare("fg") == 0)
   {
-    return new ForegroundCommand(tmp);
+    return new ForegroundCommand(trimmed_cmd);
   }
   else if (firstWord.compare("quit") == 0)
   {
-    return new QuitCommand(tmp);
+    return new QuitCommand(trimmed_cmd);
   }
   else if (firstWord.compare("kill") == 0)
   {
-    return new KillCommand(tmp);
+    return new KillCommand(trimmed_cmd);
   }
   else // external command - recieves the command line as is.
   {
@@ -856,8 +843,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   }
 }
 
-
-void SmallShell::executeCommand(const char *cmd_line) //TODO: fix this shit
+void SmallShell::executeCommand(const char *cmd_line)
 {
   //check if there is a command to execute:
   char *args[COMMAND_MAX_ARGS];
@@ -869,7 +855,7 @@ void SmallShell::executeCommand(const char *cmd_line) //TODO: fix this shit
   this->getJobsList()->removeFinishedJobs();
 
   Command *cmd;
-  this->setCurrCommand(cmd_line);
+  // this->setCurrCommand(cmd_line); #TODO: not sure if needed
   try {
     cmd = CreateCommand(cmd_line);
   } catch (const std::bad_alloc &e) {
@@ -877,8 +863,9 @@ void SmallShell::executeCommand(const char *cmd_line) //TODO: fix this shit
     _freeArgs(args, size_args);
     return;
   }
-  if(!cmd)
+  if(cmd) {
     cmd->execute();
+  }
   delete cmd;
 }
 
@@ -889,9 +876,11 @@ pid_t SmallShell::getCurrFgPid() const {
 void SmallShell::setCurrFgPid(const pid_t new_process_pid) {
   curr_fg_pid = new_process_pid;
 }
+
 void SmallShell::setCurrCommand(const std::string& command) {
   curr_command = command;
 }
+
 std::string SmallShell::getCurrCommand()const {
   return curr_command;
 }
