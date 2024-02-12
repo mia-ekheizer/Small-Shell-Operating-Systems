@@ -199,7 +199,10 @@ void ChangeDirCommand::execute()
     if (!strcmp(args[1], "-"))
     {
       string last_dir = smash.getLastDir();
-      if (chdir(last_dir.c_str()) == -1)
+      if (last_dir == "") {
+        perror("smash error: cd: OLDPWD not set");
+      }
+      else if (chdir(last_dir.c_str()) == -1)
       {
         perror("smash error: chdir failed");
       }
@@ -775,12 +778,10 @@ pid_t SmallShell::getShellPid() const
 void SmallShell::setLastDir(string new_dir)
 {
   last_dir = new_dir;
-  cout << "new last dir is " << last_dir << endl;
 }
 
 string SmallShell::getLastDir() const
 {
-  cout << "curr last dir is " << last_dir << endl;
   return last_dir;
 }
 
