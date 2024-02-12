@@ -268,7 +268,7 @@ void ForegroundCommand::execute()
   }
   JobsList::JobEntry* to_foreground = jobs->getJobById(job_id);
     if (!to_foreground){ // if no job with that id
-      std::cerr << "smash error: fg: job-id" << job_id << "does not exist" << std::endl;
+      std::cerr << "smash error: fg: job-id " << job_id << " does not exist" << std::endl;
     }
     else{
       std::cout << to_foreground->getCommand() << " " << to_string(to_foreground->getJobPid()) << std::endl;
@@ -835,7 +835,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   }
   else if (firstWord.compare("kill") == 0)
   {
-    return new KillCommand(cmd_line_noBS);
+    return new KillCommand(cmd_line_noBS); //TODO: noBS maybe?
   }
   else // external command - recieves the command line as is.
   {

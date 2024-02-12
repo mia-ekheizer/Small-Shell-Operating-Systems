@@ -12,7 +12,7 @@ void ctrlCHandler(int sig_num) {
   if (curr_process_pid != -1) { // if there is no process running in the fg, then the smash ignores it.
     if (kill(curr_process_pid, SIGKILL) == -1) {
       perror("smash error: kill failed");
-      exit(1);
+      return;
     }
     else { // killed fg process successfully
       cout << "smash: process " << curr_process_pid << " was killed" << endl;
