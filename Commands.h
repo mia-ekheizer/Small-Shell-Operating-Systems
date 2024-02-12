@@ -19,7 +19,6 @@ class Command {
   virtual void execute() = 0;
   //virtual void prepare();
   //virtual void cleanup();
-  const char* getCmdLine() const;
 };
 
 class BuiltInCommand : public Command {
@@ -130,17 +129,16 @@ class JobsList {
   class JobEntry {
     private:
       int jobId;
-      Command* cmd;
+      string cmdLine;
       pid_t jobPid;
     public:
-    JobEntry(int job_id, Command* cmd, pid_t job_pid);
+    JobEntry(int job_id, string cmd_line, pid_t job_pid);
     ~JobEntry() {};
     pid_t getJobPid() const;
     void setJobId(int new_job_id);
     int getJobId() const;
-    void printJobIdAndPid() const;
     void printJobPid() const;  // for quitCommand
-    Command* getCommand() const;
+    string getCommand() const;
   };
   class CompareJobEntryUsingPid { // needed for sorting jobs list by pid
     public:
@@ -152,7 +150,7 @@ class JobsList {
  public:
   JobsList();
   ~JobsList();
-  void addJob(Command* cmd, pid_t pid);
+  void addJob(string cmd_line, pid_t pid);
   void printJobsListWithId(); // for jobsCommand
   void removeFinishedJobs();
   JobEntry* getJobById(int jobId);

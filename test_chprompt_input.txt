@@ -1,4 +1,0 @@
-chprompt hello
-chprompt
-chprompt   
-chprompt hello thisShouldNotBePrinted and so is this
