@@ -173,9 +173,7 @@ void GetCurrDirCommand::execute()
 }
 
 // ChangeDirCommand methods
-ChangeDirCommand::ChangeDirCommand(const char *cmd_line) : BuiltInCommand(cmd_line)
-{
-}
+ChangeDirCommand::ChangeDirCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {}
 
 void ChangeDirCommand::execute()
 {
@@ -183,12 +181,11 @@ void ChangeDirCommand::execute()
   char *args[COMMAND_MAX_ARGS];
   int size_args = _parseCommandLine(cmd_line, args);
   char path[COMMAND_MAX_PATH_LENGHT];
-  char* curr_dir = getcwd(path, COMMAND_MAX_PATH_LENGHT);
-  if (!curr_dir)
+  if (!getcwd(path, COMMAND_MAX_PATH_LENGHT))
   {
     perror("smash error: getcwd failed");
   }
-  if (size_args > 2)
+  else if (size_args > 2)
   {
     std::cerr << "smash error: cd: too many arguments" << std::endl;
   }
@@ -198,10 +195,11 @@ void ChangeDirCommand::execute()
   }
   else
   { // if size_args == 2
+    string curr_dir = string(path);
     if (!strcmp(args[1], "-"))
     {
-      char* last_dir = smash.getLastDir();
-      if (chdir(last_dir) == -1)
+      string last_dir = smash.getLastDir();
+      if (chdir(last_dir.c_str()) == -1)
       {
         perror("smash error: chdir failed");
       }
@@ -752,7 +750,7 @@ void JobsList::killAllJobsInList() const {
 }
 
 // SmallShell methods
-SmallShell::SmallShell() : shellPid(getpid()), last_dir(nullptr), 
+SmallShell::SmallShell() : shellPid(getpid()), last_dir(""), 
 prompt_name("smash"), jobs(new JobsList()), curr_fg_pid(-1) {}
 
 SmallShell::~SmallShell() {
@@ -774,13 +772,15 @@ pid_t SmallShell::getShellPid() const
   return this->shellPid;
 }
 
-void SmallShell::setLastDir(char *new_dir)
+void SmallShell::setLastDir(string new_dir)
 {
   last_dir = new_dir;
+  cout << "new last dir is " << last_dir << endl;
 }
 
-char *SmallShell::getLastDir() const
+string SmallShell::getLastDir() const
 {
+  cout << "curr last dir is " << last_dir << endl;
   return last_dir;
 }
 

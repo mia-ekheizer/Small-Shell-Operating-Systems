@@ -170,7 +170,7 @@ class JobsList {
 class SmallShell {
  private:
   pid_t shellPid;
-  char* last_dir;
+  string last_dir;
   string prompt_name = "smash";
   JobsList* jobs;
   pid_t curr_fg_pid = -1;
@@ -190,8 +190,8 @@ class SmallShell {
   string getPromptName() const; // for chprompt usage
   void setPromptName(const std::string& name);  // for chprompt usage
   pid_t getShellPid() const; // for showpid usage
-  void setLastDir(char* new_dir); // for cd usage
-  char* getLastDir() const;
+  void setLastDir(string new_dir); // for cd usage
+  string getLastDir() const;
   JobsList* getJobsList() const; // for jobs and fg usage
   pid_t getCurrFgPid() const;
   void setCurrFgPid(const pid_t new_process_pid);
