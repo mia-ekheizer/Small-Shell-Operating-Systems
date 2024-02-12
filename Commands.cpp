@@ -790,52 +790,52 @@ string SmallShell::getLastDir() const
  */
 Command *SmallShell::CreateCommand(const char *cmd_line)
 {
-  char tmp[COMMAND_ARGS_MAX_LENGTH];
-  strcpy(tmp, cmd_line); // prepare the command for the built in commands
-  _removeBackgroundSign(tmp);
-  std::string trimmed_cmd = _trim(string(tmp)); 
+  char cmd_line_noBS[COMMAND_ARGS_MAX_LENGTH];
+  strcpy(cmd_line_noBS, cmd_line); // prepare the command for the built in commands
+  _removeBackgroundSign(cmd_line_noBS);
+  std::string trimmed_cmd = _trim(string(cmd_line_noBS)); 
   string firstWord = trimmed_cmd.substr(0, trimmed_cmd.find_first_of(" \n"));
-  if(isRedirectionCommand(trimmed_cmd)) {
-    return new RedirectionCommand(trimmed_cmd);
+  if(isRedirectionCommand(cmd_line_noBS)) {
+    return new RedirectionCommand(cmd_line_noBS);
   }
-  else if(isPipeCommand(trimmed_cmd)) { //TODO: implement isPipeCommand
-    return new PipeCommand(trimmed_cmd);
+  else if(isPipeCommand(cmd_line_noBS)) { //TODO: implement isPipeCommand
+    return new PipeCommand(cmd_line_noBS);
   }
   else if(firstWord.compare("chmod") == 0) {
-    return new ChmodCommand(cmd_line);
+    return new ChmodCommand(cmd_line_noBS);
   }
   //if Built-in Commands
   else if (firstWord.compare("chprompt") == 0)
   {
-    return new ChpromptCommand(trimmed_cmd);
+    return new ChpromptCommand(cmd_line_noBS);
   }
   else if (firstWord.compare("showpid") == 0)
   {
-    return new ShowPidCommand(trimmed_cmd);
+    return new ShowPidCommand(cmd_line_noBS);
   }
   else if (firstWord.compare("pwd") == 0)
   {
-    return new GetCurrDirCommand(trimmed_cmd);
+    return new GetCurrDirCommand(cmd_line_noBS);
   }
   else if (firstWord.compare("cd") == 0)
   {
-    return new ChangeDirCommand(trimmed_cmd);
+    return new ChangeDirCommand(cmd_line_noBS);
   }
   else if (firstWord.compare("jobs") == 0)
   {
-    return new JobsCommand(trimmed_cmd);
+    return new JobsCommand(cmd_line_noBS);
   }
   else if (firstWord.compare("fg") == 0)
   {
-    return new ForegroundCommand(trimmed_cmd);
+    return new ForegroundCommand(cmd_line_noBS);
   }
   else if (firstWord.compare("quit") == 0)
   {
-    return new QuitCommand(trimmed_cmd);
+    return new QuitCommand(cmd_line_noBS);
   }
   else if (firstWord.compare("kill") == 0)
   {
-    return new KillCommand(trimmed_cmd);
+    return new KillCommand(cmd_line_noBS);
   }
   else // external command - recieves the command line as is.
   {
