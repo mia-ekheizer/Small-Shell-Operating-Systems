@@ -12,7 +12,7 @@ class JobsList;
 
 class Command {
  protected:
-  const char* cmd_line;
+  std::string cmd_line;
  public:
   Command(const char* cmd_line);
   virtual ~Command() {}
@@ -129,16 +129,16 @@ class JobsList {
   class JobEntry {
     private:
       int jobId;
-      string cmdLine;
+      std::string cmd_line;
       pid_t jobPid;
     public:
-    JobEntry(int job_id, string cmd_line, pid_t job_pid);
+    JobEntry(int job_id, std::string cmd_line, pid_t job_pid);
     ~JobEntry() {};
     pid_t getJobPid() const;
     void setJobId(int new_job_id);
     int getJobId() const;
     void printJobPid() const;  // for quitCommand
-    string getCommand() const;
+    std::string getCommand() const;
   };
   class CompareJobEntryUsingPid { // needed for sorting jobs list by pid
     public:
@@ -150,7 +150,7 @@ class JobsList {
  public:
   JobsList();
   ~JobsList();
-  void addJob(string cmd_line, pid_t pid);
+  void addJob(std::string cmd, pid_t pid);
   void printJobsListWithId(); // for jobsCommand
   void removeFinishedJobs();
   JobEntry* getJobById(int jobId);
@@ -170,8 +170,9 @@ class JobsList {
 class SmallShell {
  private:
   pid_t shellPid;
-  string last_dir;
-  string prompt_name = "smash";
+  std::string curr_command;
+  std::string last_dir;
+  std::string prompt_name = "smash";
   JobsList* jobs;
   pid_t curr_fg_pid = -1;
   SmallShell();
@@ -187,14 +188,16 @@ class SmallShell {
   }
   ~SmallShell();
   void executeCommand(const char* cmd_line);
-  string getPromptName() const; // for chprompt usage
+  std::string getPromptName() const; // for chprompt usage
   void setPromptName(const std::string& name);  // for chprompt usage
   pid_t getShellPid() const; // for showpid usage
-  void setLastDir(string new_dir); // for cd usage
-  string getLastDir() const;
+  void setLastDir(const std::string &new_dir); // for cd usage
+  std::string getLastDir() const;
   JobsList* getJobsList() const; // for jobs and fg usage
   pid_t getCurrFgPid() const;
   void setCurrFgPid(const pid_t new_process_pid);
+  void setCurrCommand(const std::string& command);
+  std::string getCurrCommand()const;
 };
 
 #endif //SMASH_COMMAND_H_
