@@ -185,7 +185,6 @@ void ChangeDirCommand::execute()
   }
   else if (size_args == 2)
   {
-    string curr_dir = path;
     if (!strcmp(args[1], "-")){ // if cd -
       if(smash.getLastDir() == "") { // if last directory not set
         std::cerr << "smash error: cd: OLDPWD not set" << std::endl;
@@ -194,7 +193,8 @@ void ChangeDirCommand::execute()
         if (!getcwd(path, COMMAND_MAX_PATH_LENGHT)){
           perror("smash error: getcwd failed");
         }
-        else if (chdir(smash.getLastDir().c_str()) == -1){
+        string curr_dir = path;
+        if (chdir(smash.getLastDir().c_str()) == -1){
           perror("smash error: chdir failed");
         }
         else{
@@ -204,10 +204,12 @@ void ChangeDirCommand::execute()
     }
     else
     { // not "cd -"
+
       if (!getcwd(path, COMMAND_MAX_PATH_LENGHT)){
         perror("smash error: getcwd failed");
       }
-      else if (chdir(args[1]) == -1)
+      string curr_dir = path;
+      if (chdir(args[1]) == -1)
       {
         perror("smash error: chdir failed");
       }
@@ -601,7 +603,7 @@ JobsList::~JobsList()
 void JobsList::addJob(string cmd_line, pid_t pid)
 {
   removeFinishedJobs();
-  max_job_id++;
+  setMaxJobId(getMaxJobId()+1);
   JobsList::JobEntry* new_job = new JobsList::JobEntry(max_job_id, cmd_line, pid);
   jobs_list->push_back(new_job);
 }
@@ -734,7 +736,7 @@ JobsList::JobEntry *JobsList::getLastJob()
   return jobs_list->back();
 }
 
-void JobsList::killAllJobsInList() const {
+void JobsList::killAllJobsInList()  {
   set<JobsList::JobEntry*, JobsList::CompareJobEntryUsingPid> jobsByPid; // new set, with a functor <
   for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end(); it++)
   { // fill the new set in an ordered way
@@ -749,6 +751,11 @@ void JobsList::killAllJobsInList() const {
       }
       job->printJobPid();
     }
+    for (JobsList::JobEntry* job : jobsByPid)
+    {
+      delete job;
+    }
+    setMaxJobId(0);
 }
 
 // SmallShell methods

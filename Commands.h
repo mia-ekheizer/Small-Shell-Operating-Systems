@@ -164,7 +164,7 @@ class JobsList {
   int getSize() const;
   int getMaxJobId() const;
   void setMaxJobId(int new_max_job_id);
-  void killAllJobsInList() const;
+  void killAllJobsInList();
 };
 
 class SmallShell {
