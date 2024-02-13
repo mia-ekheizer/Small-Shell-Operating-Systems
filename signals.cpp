@@ -16,6 +16,7 @@ void ctrlCHandler(int sig_num) {
     }
     else { // killed fg process successfully
       cout << "smash: process " << curr_process_pid << " was killed" << endl;
+      smash.setCurrFgPid(-1);
     }
   }
 }
