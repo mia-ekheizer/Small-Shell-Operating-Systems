@@ -443,12 +443,12 @@ void RedirectionCommand::execute() {
   std::string command = cmd_line;
   std::string outfile;
   if(counter == 1) {
-    command = command.substr(0, command.find(">"));
-    outfile = command.substr(command.find(">") + 1, command.length());
+    command = cmd_line.substr(0, cmd_line.find(">"));
+    outfile = cmd_line.substr(cmd_line.find(">") + 1, cmd_line.length());
   }
   else if(counter == 2) {
-    command = command.substr(0, command.find(">>"));
-    outfile = command.substr(command.find(">>") + 1, command.length());
+    command = cmd_line.substr(0, cmd_line.find(">>"));
+    outfile = cmd_line.substr(cmd_line.find(">>") + 2, cmd_line.length());//TODO: changed this to 2
   }
   else {
     std::cerr << "smash error: redirection: invalid arguments" << std::endl;
@@ -465,7 +465,7 @@ void RedirectionCommand::execute() {
     return;
   }
 
-  mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; //rw-r--r-- (644)
+  mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IXGRP | S_IXOTH; //rw-r--r-- (644) TODO: changed this
   if(counter == 1) { // > command
     if(open(outfile.c_str(), O_CREAT | O_WRONLY | O_TRUNC, mode) == -1) {
       perror("smash error: open failed");
@@ -498,7 +498,6 @@ void RedirectionCommand::execute() {
   //close the file that we wrote into:
   if(close(1) == -1) {
     perror("smash error: close failed");
-    return;
   }
   //reopen standard output:
   if(dup2(fd, 1) == -1) {
