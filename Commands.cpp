@@ -230,7 +230,7 @@ JobsCommand::JobsCommand(const char *cmd_line) : BuiltInCommand(cmd_line)
 void JobsCommand::execute()
 {
   SmallShell &smash = SmallShell::getInstance();
-  smash.getJobsList()->removeFinishedJobs(); //TODO: added this 
+  smash.getJobsList()->removeFinishedJobs(); 
   smash.getJobsList()->printJobsListWithId();
 }
 
@@ -481,7 +481,7 @@ void RedirectionCommand::execute() {
   }
   else if(counter == 2) {
     command = cmd_line.substr(0, cmd_line.find(">>"));
-    outfile = cmd_line.substr(cmd_line.find(">>") + 2, cmd_line.length());//TODO: changed this to 2
+    outfile = cmd_line.substr(cmd_line.find(">>") + 2, cmd_line.length());
   }
   else {
     std::cerr << "smash error: redirection: invalid arguments" << std::endl;
@@ -498,7 +498,7 @@ void RedirectionCommand::execute() {
     return;
   }
 
-  mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IXGRP | S_IXOTH; //rw-r--r-- (644) TODO: changed this
+  mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IXGRP | S_IXOTH; 
   if(counter == 1) { // > command
     if(open(outfile.c_str(), O_CREAT | O_WRONLY | O_TRUNC, mode) == -1) {
       perror("smash error: open failed");
@@ -578,7 +578,28 @@ void ChmodCommand::execute() {
 PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line) {}
 
 void PipeCommand::execute() {
-  //TODO: implement
+  SmallShell &smash = SmallShell::getInstance();
+  smash.setIsPipe(true);
+  std::string cmd_line_str = cmd_line;
+  std::string first_command;
+  std::string second_command;
+  if(cmd_line_str.find("|&") != std::string::npos) {
+    first_command = cmd_line.substr(0, cmd_line.find("|&"));
+    second_command = cmd_line.substr(cmd_line.find("|&") + 2, cmd_line.length())
+  }
+  else {
+    first_command = cmd_line.substr(0, cmd_line.find("|"));
+    second_command = cmd_line.substr(cmd_line.find("|") + 1, cmd_line.length())
+  }
+  int stdin_copy = dup(0);
+  int stdout_copy = dup(1);
+  int stderr_copy = dup(2);
+  if(stdin_copy == -1 || stdout_copy == -1 || stderr_copy == -1) {
+    perror("smash error: dup failed");
+    return;
+  }
+
+  //TODO: continue here
 }
 
 bool isPipeCommand(const string &cmd_line) {
@@ -836,7 +857,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   if(isRedirectionCommand(cmd_line_noBS)) {
     return new RedirectionCommand(cmd_line_noBS);
   }
-  else if(isPipeCommand(cmd_line_noBS)) { //TODO: implement isPipeCommand
+  else if(isPipeCommand(cmd_line_noBS)) { 
     return new PipeCommand(cmd_line_noBS);
   }
   else if(firstWord.compare("chmod") == 0) {
@@ -873,7 +894,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
   }
   else if (firstWord.compare("kill") == 0)
   {
-    return new KillCommand(cmd_line_noBS); //TODO: noBS maybe?
+    return new KillCommand(cmd_line_noBS);
   }
   else // external command - recieves the command line as is.
   {
@@ -893,7 +914,6 @@ void SmallShell::executeCommand(const char *cmd_line)
   this->getJobsList()->removeFinishedJobs();
 
   Command *cmd;
-  // this->setCurrCommand(cmd_line); #TODO: not sure if needed
   try {
     cmd = CreateCommand(cmd_line);
   } catch (const std::bad_alloc &e) {
@@ -921,4 +941,12 @@ void SmallShell::setCurrCommand(const std::string& command) {
 
 std::string SmallShell::getCurrCommand()const {
   return curr_command;
+}
+
+void SmallShell::setIsPipe(const bool isPipe) {
+  this->isPipe = isPipe;
+}
+
+bool SmallShell::getIsPipe() const {
+  return this->isPipe;
 }

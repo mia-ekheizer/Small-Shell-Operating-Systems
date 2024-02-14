@@ -22,6 +22,14 @@ void ctrlCHandler(int sig_num) {
 }
 
 void alarmHandler(int sig_num) {
-  
+  /* cout << "smash: got an alarm" << endl;
+  // TODO: search for the command that caused the alarm, store it in alarm_cmd.
+  if (kill(alarm_cmd.getPid(), SIGKILL) == -1) {
+    perror("smash error: kill failed");
+    exit(1);
+  }
+  else {
+    cout << "smash: " << alarm_cmd.getCmdLine() << " timed out!" << endl;
+  } */
 }
 
