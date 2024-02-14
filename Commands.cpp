@@ -318,31 +318,24 @@ void QuitCommand::execute()
 // KillCommand methods
 KillCommand::KillCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {}
 
+// if size >= 3 -> check if jobId is int, if yes-> check if job exists->continue; if not->invalid args
 void KillCommand::execute()
 {
   SmallShell &smash = SmallShell::getInstance();
   char *args[COMMAND_MAX_ARGS];
   int size_args = _parseCommandLine(cmd_line.c_str(), args);
-  if(size_args == 1) {
+  if(size_args <= 2) {
     std::cerr << "smash error: kill: invalid arguments" << std::endl;
     _freeArgs(args, size_args);
-    return;
-  }
-  std::string sigNumStrFull(args[1]);
-  if (sigNumStrFull.length() != 2) {
-    std::cerr << "smash error: kill: invalid arguments" << std::endl;
-    _freeArgs(args, size_args);
-    return;
-  }                                            //TODO: fix logic
-  std::string sigNumStr = sigNumStrFull.substr(1); // remove the "-" sign and take the rest of the string
-  int jobId;
-  int sigNum;
-  if (size_args == 3) // if valid command size
+    return; 
+  } 
+  else // if size_args >= 3
   {
-    try
+    int jobId;
+    int sigNum;
+    try //check if jobId is int
     {
       jobId = std::stoi(args[2]); 
-      sigNum = std::stoi(sigNumStr); //TODO: fix logic
     }
     catch (std::invalid_argument &e)
     {
@@ -350,11 +343,33 @@ void KillCommand::execute()
       _freeArgs(args, size_args);
       return;
     }
-    // if command is valid:
-    JobsList::JobEntry *job = smash.getJobsList()->getJobById(jobId);
+
+    // if JobId is int:
+    JobsList::JobEntry *job = smash.getJobsList()->getJobById(jobId); // check if the job exists
     if (job == nullptr)
     {
       std::cerr << "smash error: kill: job-id " << jobId << " does not exist" << std::endl;
+      _freeArgs(args, size_args);
+      return;
+    }
+
+    std::string sigNumStrFull(args[1]);
+    if(sigNumStrFull[0] != '-') {
+      std::cerr << "smash error: kill: invalid arguments" << std::endl;
+      _freeArgs(args, size_args);
+      return;
+    }
+    std::string sigNumStr = sigNumStrFull.substr(1); // remove the "-" sign and take the rest of the string
+    try {
+      sigNum = std::stoi(sigNumStr); // check if the signal is an int
+    }
+    catch (std::invalid_argument &e) {
+      std::cerr << "smash error: kill: invalid arguments" << std::endl;
+      _freeArgs(args, size_args);
+      return;
+    }                                    
+    if (size_args > 3) {
+      std::cerr << "smash error: kill: invalid arguments" << std::endl;
       _freeArgs(args, size_args);
       return;
     }
@@ -373,11 +388,6 @@ void KillCommand::execute()
         return;
       }
     }
-  }
-  else { // size_args is not 3
-    std::cerr << "smash error: kill: invalid arguments" << std::endl;
-    _freeArgs(args, size_args);
-    return;
   }
 }
 
@@ -642,6 +652,7 @@ void JobsList::printJobsListWithId()
 void JobsList::removeFinishedJobs()
 {
   if (isEmpty()) {
+    updateMaxJobId();
     return;
   }
   for (vector<JobsList::JobEntry*>::iterator it = jobs_list->begin(); it != jobs_list->end();)
