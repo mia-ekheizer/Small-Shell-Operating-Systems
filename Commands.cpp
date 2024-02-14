@@ -426,7 +426,7 @@ void ExternalCommand::execute()
     }
     else if (is_complex_command)
     {
-      if (execlp("/bin/bash", "-c", final_cmd) == -1)
+      if (execlp("bash","bash", "-c", final_cmd,NULL) == -1)
       {
         perror("smash error: execlp failed");
         exit(1);
