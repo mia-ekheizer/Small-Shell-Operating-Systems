@@ -115,6 +115,17 @@ bool _isBuiltInCommand(const char* cmd_line)
   
 }
 
+void closePipe(int *pipefd) {
+  if(close(pipefd[0]) == -1 || close(pipefd[1]) == -1) {
+    perror("smash error: close failed");
+  }
+}
+void restoreDup(int stdin_copy, int stdout_copy, int stderr_copy) {
+  if(dup2(stdin_copy, 0) == -1 || dup2(stdout_copy, 1) == -1 || dup2(stderr_copy, 2) == -1) {
+    perror("smash error: dup2 failed");
+  }
+}
+
 // Command methods
 Command::Command(const char *cmd_line) : cmd_line(cmd_line) {}
 
@@ -585,12 +596,12 @@ void PipeCommand::execute() {
   std::string second_command;
   if(cmd_line_str.find("|&") != std::string::npos) {
     first_command = cmd_line.substr(0, cmd_line.find("|&")); 
-    second_command = cmd_line.substr(cmd_line.find("|&") + 2, cmd_line.length())
+    second_command = cmd_line.substr(cmd_line.find("|&") + 2, cmd_line.length());
     is_stderr = true;
   }
   else {
     first_command = cmd_line.substr(0, cmd_line.find("|"));
-    second_command = cmd_line.substr(cmd_line.find("|") + 1, cmd_line.length())
+    second_command = cmd_line.substr(cmd_line.find("|") + 1, cmd_line.length());
   }
   int stdin_copy = dup(0);
   int stdout_copy = dup(1);
@@ -606,23 +617,6 @@ void PipeCommand::execute() {
     return;
   }
 
-  //decide if we pipe the stderr or the stdout:
-  if(is_stderr) {
-    if(dup2(pipefd[1], 2) == -1) {
-      perror("smash error: dup2 failed");
-      closePipe(pipefd);
-      restoreDup(stdin_copy, stdout_copy, stderr_copy);
-      return;
-    }
-  }
-  else { //is_stdout
-    if(dup2(pipefd[1], 1) == -1) {
-      perror("smash error: dup2 failed");
-      closePipe(pipefd);
-      restoreDup(stdin_copy, stdout_copy, stderr_copy);
-      }
-      return;
-    }
   
 
   pid_t pid = fork();
@@ -637,35 +631,30 @@ void PipeCommand::execute() {
       perror("smash error: setpgrp failed");
       exit(1);
     }
+    //decide if we pipe the stderr or the stdout:
+    if(is_stderr) {
+      if(dup2(pipefd[1], 2) == -1) {
+        perror("smash error: dup2 failed");
+        closePipe(pipefd);
+        restoreDup(stdin_copy, stdout_copy, stderr_copy);
+        return;
+      }
+    }
+    else { //is_stdout
+      if(dup2(pipefd[1], 1) == -1) {
+          perror("smash error: dup2 failed");
+          closePipe(pipefd);
+          restoreDup(stdin_copy, stdout_copy, stderr_copy);
+          return;
+      }
+    }
     closePipe(pipefd);
-    smash.executeCommand(first_command.c_str());
+    smash.executeCommand(first_command.c_str()); //TODO:
     exit(0);
   }
-
   //parent process:  (executes the second command)
 
-  //prepare to read from the pipe:
-  if(dup2(pipefd[0], 0) == -1) {
-    perror("smash error: dup2 failed");
-    closePipe(pipefd);
-    restoreDup(stdin_copy, stdout_copy, stderr_copy);
-    return;
-  }
-  //restore stderr and stdout:
-  if(is_stderr) {
-    if(dup2(stderr_copy, 2) == -1) {
-      perror("smash error: dup2 failed");
-      closePipe(pipefd);
-      return;
-    }
-  }
-  else { //is_stdout
-    if(dup2(stdout_copy, 1) == -1) {
-      perror("smash error: dup2 failed");
-      closePipe(pipefd);
-      return;
-    }
-  }
+  
   //execute the second command:
   pid_t pid2 = fork();
   if(pid2 == -1) {
@@ -679,12 +668,23 @@ void PipeCommand::execute() {
       perror("smash error: setpgrp failed");
       exit(1);
     }
+
+        //prepare to read from the pipe:
+    if(dup2(pipefd[0], 0) == -1) {
+      perror("smash error: dup2 failed");
+      closePipe(pipefd);
+      restoreDup(stdin_copy, stdout_copy, stderr_copy);
+      return;
+    }
+     
     closePipe(pipefd);
     smash.executeCommand(second_command.c_str());
+    //restoreDup(stdin_copy, stdout_copy, stderr_copy);
     exit(0);
   }
   //wait for the child processes to finish:
   //TODO: continue here
+  closePipe(pipefd);
   if (waitpid(pid, nullptr, WUNTRACED) == -1) {
     perror("smash error: waitpid failed");
     closePipe(pipefd);
@@ -697,6 +697,7 @@ void PipeCommand::execute() {
     restoreDup(stdin_copy, stdout_copy, stderr_copy);
     return;
   }
+  restoreDup(stdin_copy, stdout_copy, stderr_copy);
   return;
 }
 
@@ -1042,13 +1043,3 @@ std::string SmallShell::getCurrCommand()const {
   return curr_command;
 }
 
-void closePipe(int *pipefd) {
-  if(close(pipefd[0]) == -1 || close(pipefd[1]) == -1) {
-    perror("smash error: close failed");
-  }
-}
-void restoreDup(int stdin_copy, int stdout_copy, int stderr_copy) {
-  if(dup2(stdin_copy, 0) == -1 || dup2(stdout_copy, 1) == -1 || dup2(stderr_copy, 2) == -1) {
-    perror("smash error: dup2 failed");
-  }
-}
