@@ -935,6 +935,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
 {
   char cmd_line_noBS[COMMAND_ARGS_MAX_LENGTH];
   strcpy(cmd_line_noBS, cmd_line); // prepare the command for the built in commands
+  std::string trimmed_for_pipe = _trim(string(cmd_line_noBS));//(has backsign)
   _removeBackgroundSign(cmd_line_noBS);
   std::string trimmed_cmd = _trim(string(cmd_line_noBS)); 
   string firstWord = trimmed_cmd.substr(0, trimmed_cmd.find_first_of(" \n"));
@@ -942,7 +943,7 @@ Command *SmallShell::CreateCommand(const char *cmd_line)
     return new RedirectionCommand(cmd_line_noBS);
   }
   else if(isPipeCommand(cmd_line_noBS)) { 
-    return new PipeCommand(cmd_line_noBS);
+    return new PipeCommand(trimmed_for_pipe.c_str());//TODO: check if right
   }
   else if(firstWord.compare("chmod") == 0) {
     return new ChmodCommand(cmd_line_noBS);
