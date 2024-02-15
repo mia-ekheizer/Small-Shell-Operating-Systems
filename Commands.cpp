@@ -579,13 +579,12 @@ PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line) {}
 
 void PipeCommand::execute() {
   SmallShell &smash = SmallShell::getInstance();
-  smash.setIsPipe(true);
   bool is_stderr = false;
   std::string cmd_line_str = cmd_line;
   std::string first_command;
   std::string second_command;
   if(cmd_line_str.find("|&") != std::string::npos) {
-    first_command = cmd_line.substr(0, cmd_line.find("|&"));
+    first_command = cmd_line.substr(0, cmd_line.find("|&")); 
     second_command = cmd_line.substr(cmd_line.find("|&") + 2, cmd_line.length())
     is_stderr = true;
   }
@@ -597,12 +596,13 @@ void PipeCommand::execute() {
   int stdout_copy = dup(1);
   int stderr_copy = dup(2);
   if(stdin_copy == -1 || stdout_copy == -1 || stderr_copy == -1) {
-    perror("smash error: dup failed");
+    perror("smash error: dup failed"); 
     return;
   }
   int pipefd[2];
   if(pipe(pipefd) == -1) {
     perror("smash error: pipe failed");
+    restoreDup(stdin_copy, stdout_copy, stderr_copy);
     return;
   }
 
@@ -672,6 +672,7 @@ void PipeCommand::execute() {
     perror("smash error: fork failed");
     closePipe(pipefd);
     restoreDup(stdin_copy, stdout_copy, stderr_copy);
+    return;
   }
   else if(pid2 == 0) {
     if(setpgrp() == -1) {
@@ -684,6 +685,19 @@ void PipeCommand::execute() {
   }
   //wait for the child processes to finish:
   //TODO: continue here
+  if (waitpid(pid, nullptr, WUNTRACED) == -1) {
+    perror("smash error: waitpid failed");
+    closePipe(pipefd);
+    restoreDup(stdin_copy, stdout_copy, stderr_copy);
+    return;
+  }
+  if (waitpid(pid2, nullptr, WUNTRACED) == -1) {
+    perror("smash error: waitpid failed");
+    closePipe(pipefd);
+    restoreDup(stdin_copy, stdout_copy, stderr_copy);
+    return;
+  }
+  return;
 }
 
 bool isPipeCommand(const string &cmd_line) {
@@ -1028,13 +1042,6 @@ std::string SmallShell::getCurrCommand()const {
   return curr_command;
 }
 
-void SmallShell::setIsPipe(const bool isPipe) {
-  this->isPipe = isPipe;
-}
-
-bool SmallShell::getIsPipe() const {
-  return this->isPipe;
-}
 void closePipe(int *pipefd) {
   if(close(pipefd[0]) == -1 || close(pipefd[1]) == -1) {
     perror("smash error: close failed");

@@ -175,7 +175,6 @@ class SmallShell {
   std::string prompt_name = "smash";
   JobsList* jobs;
   pid_t curr_fg_pid = -1;
-  bool isPipe = false;
   SmallShell();
  public:
   Command *CreateCommand(const char* cmd_line);
@@ -199,8 +198,6 @@ class SmallShell {
   void setCurrFgPid(const pid_t new_process_pid);
   void setCurrCommand(const std::string& command);
   std::string getCurrCommand()const;
-  void setIsPipe(const bool isPipe);
-  bool getIsPipe() const;
 };
 
 #endif //SMASH_COMMAND_H_
